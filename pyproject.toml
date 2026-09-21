@@ -1,9 +1,10 @@
 [project]
 name = "spectrum_ps"
 authors = [
-    { name = "aswin", email = "aswinsomasundara302@gmail.com"}
+    { name = "aswin", email = "aswinsomasundara302@gmail.com"},
+    { name = "Narayan Bandodker", email = "narayan.b@phaidelta.com"}
 ]
-description = "custom app"
+description = "Spectrum PS application integration"
 requires-python = ">=3.14"
 readme = "README.md"
 dynamic = ["version"]

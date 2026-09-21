@@ -1,8 +1,8 @@
 app_name = "spectrum_ps"
-app_title = "spectrum_ps"
-app_publisher = "aswin"
-app_description = "custom app"
-app_email = "aswinsomasundara302@gmail.com"
+app_title = "Spectrum PS"
+app_publisher = "phAIdelta"
+app_description = "Spectrum PS application integration"
+app_email = "admin@phaidelta.com"
 app_license = "mit"
 
 # Apps
@@ -15,7 +15,7 @@ app_license = "mit"
 # 	{
 # 		"name": "spectrum_ps",
 # 		"logo": "/assets/spectrum_ps/logo.png",
-# 		"title": "spectrum_ps",
+# 		"title": "Spectrum PS",
 # 		"route": "/spectrum_ps",
 # 		"has_permission": "spectrum_ps.api.permission.has_app_permission"
 # 	}
