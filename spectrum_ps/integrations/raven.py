@@ -20,7 +20,7 @@ class RavenClient:
             "Content-Type": "application/json",
         }
 
-    def send_message(self, text: str) -> dict:
+    def send_message(self, text: str, channel: str | None = None) -> dict:
         response = requests.post(
             urljoin(self.base_url, "api/method/raven.api.raven_message.send_message"),
             headers=self.headers,
