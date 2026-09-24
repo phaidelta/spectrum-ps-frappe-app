@@ -23,10 +23,10 @@ def create_customer_bot(doc: "Customer", method):
 		if frappe.db.exists("Customer", doc.name):
 			# Create a Raven Bot record for the customer.
 			raven_bot = frappe.new_doc("Raven Bot")
-			raven_bot.name = bot_id
-			raven_bot.bot_name = doc.customer_name
+			raven_bot.bot_name = bot_id
 			raven_bot.insert(ignore_permissions=True)
 			doc.custom_raven_bot = bot_id
+			# TODO: Rename raven_bot.customer_name
 
 
 def remove_customer_bot(doc: "Customer", method):
