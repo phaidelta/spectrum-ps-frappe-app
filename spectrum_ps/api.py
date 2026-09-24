@@ -1,3 +1,4 @@
+import json
 from urllib.parse import urlsplit
 from typing import TYPE_CHECKING
 
