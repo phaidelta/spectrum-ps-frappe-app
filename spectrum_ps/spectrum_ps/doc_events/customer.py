@@ -27,7 +27,7 @@ def create_customer_bot(doc: "Customer", method):
 			raven_bot.bot_name = bot_id
 			raven_bot.insert(ignore_permissions=True)
 			doc.custom_raven_bot = bot_id
-			# TODO: Rename raven_bot's full name to be doc.customer_name
+			# TODO: Rename raven_bot's raven_user full name to be doc.customer_name
 			doc.save(ignore_permissions=True)
 
 
