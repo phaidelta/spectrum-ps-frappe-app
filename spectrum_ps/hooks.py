@@ -5,10 +5,10 @@ app_description = "Spectrum PS application integration"
 app_email = "admin@phaidelta.com"
 app_license = "mit"
 
-scheduler_events = {
-    "cron": {
-        "* * * * *": [
-            "spectrum_ps.raven_listener.poll_raven_messages",
-        ],
-    },
+
+doc_events = {
+	"Raven Message": {
+		"after_insert": "spectrum_ps.raven_events.on_raven_message_created",
+                "on_update": "spectrum_ps.raven_events.on_raven_message_created"
+	}
 }
