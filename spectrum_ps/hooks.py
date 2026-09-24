@@ -152,6 +152,14 @@ app_license = "mit"
 # 	}
 # }
 
+doc_events = {
+    "Customer": {
+		"after_insert": "spectrum_ps.handler.customer.create_customer_bot",
+		"on_update": "spectrum_ps.handler.customer.create_customer_bot",
+		"on_trash": "spectrum_ps.handler.customer.remove_customer_bot",
+	}
+}
+
 # Scheduled Tasks
 # ---------------
 
