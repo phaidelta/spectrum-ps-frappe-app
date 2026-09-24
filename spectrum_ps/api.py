@@ -86,6 +86,20 @@ def _generate_temporary_login_link(email: str, expiry: int):
 		allow_header_override=False,
 	)
 
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+def contact_us(user_name, email_id, phone_no, message):
+	"""Allows Guest users to to raise enquiry"""
+	doc = frappe.get_doc(
+        {
+            "doctype": "Customer Inquiry",
+            "user_name": user_name,
+            "email_id": email_id,
+            "phone_no": phone_no,
+            "message": message,
+        }
+    )
+	doc.insert(ignore_permissions=True)
+	return {"status": "success", "name": doc.name}
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 # @rate_limit(limit=get_login_with_email_link_ratelimit, seconds=60 * 60)
