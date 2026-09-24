@@ -153,7 +153,7 @@ app_license = "mit"
 # }
 
 doc_events = {
-    "Customer": {
+	"Customer": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
 		"on_update": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.customer.remove_customer_bot",
