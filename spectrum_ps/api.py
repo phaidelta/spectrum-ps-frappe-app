@@ -1,19 +1,19 @@
 import json
-from urllib.parse import urlsplit
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 import frappe
+from frappe import _
 from frappe.exceptions import ValidationError
-from frappe.utils.oauth import get_oauth2_authorize_url
 from frappe.rate_limiter import rate_limit
 from frappe.utils import get_url
 from frappe.utils.oauth import (
-    get_user_record,
-    update_oauth_user,
     SignupDisabledError,
     get_email,
+    get_oauth2_authorize_url,
+    get_user_record,
+    update_oauth_user,
 )
-from frappe import _
 
 if TYPE_CHECKING:
     from frappe.core.doctype.user.user import User
