@@ -17,6 +17,7 @@ def create_customer_bot(doc: "Customer", method):
 		if doc.custom_raven_bot != bot_id:
 			frappe.log("Assigning Existing bot account `%s` to customer `%s`" % (bot_id, doc.name))
 			doc.custom_raven_bot = bot_id
+			doc.save(ignore_permissions=True)
 	else:
 		# Raven bot does not exist.
 		# Only create raven bot if it exists in the system.
@@ -26,7 +27,8 @@ def create_customer_bot(doc: "Customer", method):
 			raven_bot.bot_name = bot_id
 			raven_bot.insert(ignore_permissions=True)
 			doc.custom_raven_bot = bot_id
-			# TODO: Rename raven_bot.customer_name
+			# TODO: Rename raven_bot's full name to be doc.customer_name
+			doc.save(ignore_permissions=True)
 
 
 def remove_customer_bot(doc: "Customer", method):
