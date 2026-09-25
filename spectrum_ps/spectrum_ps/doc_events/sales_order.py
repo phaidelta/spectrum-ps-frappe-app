@@ -32,7 +32,12 @@ def create_raven_channel(doc: "Sales Order", method=None):
 		return
 
 	bot_user = frappe.get_cached_doc("Raven Bot", customer.custom_raven_bot)
-	bot_user.add_to_channel(raven_channel.name)
+	previous_ignore_permissions = getattr(frappe.flags, "ignore_permissions", False)
+	frappe.flags.ignore_permissions = True
+	try:
+		bot_user.add_to_channel(raven_channel.name)
+	finally:
+		frappe.flags.ignore_permissions = previous_ignore_permissions
 
 
 def remove_raven_channel(doc: "Sales Order", method=None):
