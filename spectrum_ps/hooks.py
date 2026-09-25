@@ -158,6 +158,9 @@ doc_events = {
 		# "on_update": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.customer.remove_customer_bot",
 	},
+	"Raven Bot": {
+		"on_update": "spectrum_ps.spectrum_ps.doc_events.customer.sync_customer_raven_user",
+	},
 	"Sales Order": {
 		"before_validate": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_raven_channel",
