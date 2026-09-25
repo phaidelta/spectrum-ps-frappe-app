@@ -157,7 +157,16 @@ doc_events = {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
 		# "on_update": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.customer.remove_customer_bot",
-	}
+	},
+	"Sales Order": {
+		"before_validate": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
+		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_raven_channel",
+	},
+	"ToDo": {
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.todo.add_assigned_user",
+		"before_save": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_cancel",
+		"on_trash": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_trash",
+	},
 }
 
 # Scheduled Tasks
@@ -269,4 +278,3 @@ doc_events = {
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-
