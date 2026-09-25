@@ -26,9 +26,14 @@ def create_raven_channel(doc: "Sales Order", method=None):
 
 	doc.custom_raven_channel = raven_channel.name
 
+	# <Owner>, i.e. creator of this doc automatically gets added to channel when created
+	# https://github.com/frappe/raven/blob/fac2b927982cd2fb84c032715ebd6e4aafc9ea3f/raven/raven_channel_management/doctype/raven_channel/raven_channel.py#L150
+	# TODO: Find all administrator accounts, add them all, or add a config to choose
+
 	if not doc.customer:
 		return
 
+	# Add customer's bot to the channel (if present)
 	customer = frappe.get_cached_doc("Customer", doc.customer)
 	if not customer.custom_raven_bot:
 		return
@@ -37,6 +42,8 @@ def create_raven_channel(doc: "Sales Order", method=None):
 
 	with ignore_permissions():
 		bot_user.add_to_channel(raven_channel.name)
+
+	# TODO: Add Realtor's bot
 
 
 def remove_raven_channel(doc: "Sales Order", method=None):
