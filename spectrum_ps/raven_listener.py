@@ -1,91 +1,238 @@
-import json
+import re
 
 import frappe
 
 from .integrations.raven import RavenClient
 from .integrations.twilio import send_whatsapp_message
-from .realtime import publish_message
-
-_SEEN_KEY = "spectrum_ps:raven_seen_message_ids"
-_MAX_SEEN = 2000
+from .integrations.config import require_setting
 
 
-def _normalize(raw_message: dict) -> dict:
-    return {
-        "id": raw_message.get("name") or raw_message.get("id") or raw_message.get("message_id"),
-        "content": raw_message.get("text") or raw_message.get("content"),
-        "sender": raw_message.get("sender") or raw_message.get("owner") or raw_message.get("sent_by"),
-        "is_bot_message": raw_message.get("is_bot_message", 0),
-        "raw": raw_message,
-    }
+def get_channel_id():
+    return require_setting("raven_channel_id")
 
 
-def _seen_ids() -> list[str]:
-    raw = frappe.cache().get_value(_SEEN_KEY) or "[]"
-    try:
-        value = json.loads(raw)
-    except (TypeError, ValueError):
-        value = []
-    return value if isinstance(value, list) else []
+def get_bot_user():
+    return (
+        frappe.conf.get("raven_bot_user")
+        or "bot@phaidelta.com"
+    )
 
 
-def _remember(message_id: str) -> None:
-    seen = _seen_ids()
-    if message_id not in seen:
-        seen.append(message_id)
-    frappe.cache().set_value(_SEEN_KEY, json.dumps(seen[-_MAX_SEEN:]))
+def get_whatsapp_customer_number():
+    return require_setting("whatsapp_customer_number")
 
 
-def poll_raven_messages() -> None:
-    """Poll the configured Raven channel and forward new messages to WhatsApp."""
-    client = RavenClient()
-    messages = [_normalize(item) for item in client.get_messages()]
+def clean_raven_message(message):
+    content = (
+        message.get("content")
+        or message.get("text")
+        or ""
+    )
+
+    if not content:
+        return ""
+
+    content = re.sub(
+        r"<[^>]+>",
+        "",
+        str(content),
+    )
+
+    return content.strip()
+
+
+def get_message_timestamp(message):
+    return message.get("creation") or ""
+
+
+def get_message_id(message):
+    return message.get("name") or ""
+
+
+def is_message_from_bot(message):
+    bot_user = get_bot_user()
+
+    owner = (
+        message.get("owner")
+        or ""
+    ).strip()
+
+    return owner.lower() == bot_user.lower()
+
+
+def get_new_messages(messages):
+    last_timestamp = frappe.cache().get_value(
+        "spectrum_ps:raven:last_message_timestamp"
+    )
+
+    last_message_id = frappe.cache().get_value(
+        "spectrum_ps:raven:last_message_id"
+    )
+
+    new_messages = []
+
+    for message in messages:
+        creation = get_message_timestamp(message)
+        message_id = get_message_id(message)
+
+        if not creation:
+            continue
+
+        if not last_timestamp:
+            continue
+
+        if creation > last_timestamp:
+            new_messages.append(message)
+            continue
+
+        if (
+            creation == last_timestamp
+            and message_id
+            and message_id != last_message_id
+        ):
+            new_messages.append(message)
+
+    return new_messages
+
+
+def update_cursor(message):
+    creation = get_message_timestamp(message)
+    message_id = get_message_id(message)
+
+    if creation:
+        frappe.cache().set_value(
+            "spectrum_ps:raven:last_message_timestamp",
+            creation,
+        )
+
+    if message_id:
+        frappe.cache().set_value(
+            "spectrum_ps:raven:last_message_id",
+            message_id,
+        )
+
+
+def initialize_cursor(messages):
     if not messages:
         return
 
-    seen = set(_seen_ids())
+    sorted_messages = sorted(
+        messages,
+        key=lambda message: (
+            get_message_timestamp(message),
+            get_message_id(message),
+        ),
+    )
 
-    for message in messages:
-        message_id = message.get("id")
-        if not message_id:
-            continue
+    latest = sorted_messages[-1]
 
-        if message_id in seen:
-            continue
+    update_cursor(latest)
 
-        if message.get("is_bot_message") in (1, True, "1", "true", "True"):
-            _remember(message_id)
-            continue
+    frappe.logger().info(
+        "Raven listener initialized at message %s",
+        get_message_id(latest),
+    )
 
-        content = message.get("content")
-        if not content:
-            _remember(message_id)
-            continue
 
-        recipient = frappe.conf.get("whatsapp_customer_number") or frappe.get_env("WHATSAPP_CUSTOMER_NUMBER")
-        if not recipient:
-            frappe.log_error(
-                "No WhatsApp customer number configured for Raven -> WhatsApp delivery.",
-                "Raven to WhatsApp",
+def poll_raven_messages():
+
+    frappe.log_error(
+        title="RAVEN POLLING TEST",
+        message="poll_raven_messages() was executed by scheduler"
+    )
+
+    frappe.logger().info(
+        "===== RAVEN POLLING JOB STARTED ====="
+    )
+
+    channel_id = get_channel_id()
+
+    raven = RavenClient()
+
+    try:
+        response = raven.get_messages(
+            channel=channel_id
+        )
+    except Exception:
+        frappe.log_error(
+            title="Raven Polling Failed",
+            message=frappe.get_traceback(),
+        )
+        return
+
+    messages = (
+        response.get("message", {})
+        .get("messages", [])
+    )
+
+    if not messages:
+        return
+
+    last_timestamp = frappe.cache().get_value(
+        "spectrum_ps:raven:last_message_timestamp"
+    )
+
+    if not last_timestamp:
+        initialize_cursor(messages)
+        return
+
+    new_messages = get_new_messages(messages)
+
+    if not new_messages:
+        return
+
+    new_messages = sorted(
+        new_messages,
+        key=lambda message: (
+            get_message_timestamp(message),
+            get_message_id(message),
+        ),
+    )
+
+    customer_number = get_whatsapp_customer_number()
+
+    for message in new_messages:
+        message_id = get_message_id(message)
+
+        if is_message_from_bot(message):
+            update_cursor(message)
+
+            frappe.logger().info(
+                "Skipping Raven bot message: %s",
+                message_id,
             )
-            _remember(message_id)
+
+            continue
+
+        text = clean_raven_message(message)
+
+        if not text:
+            update_cursor(message)
             continue
 
         try:
-            response = send_whatsapp_message(recipient, content)
-        except Exception as exc:
-            frappe.log_error(f"Raven message forwarding failed: {exc}", "Raven to WhatsApp")
-            _remember(message_id)
-            continue
+            sid = send_whatsapp_message(
+                to=customer_number,
+                body=text,
+            )
 
-        publish_message(
-            "spectrum_ps_raven_message",
-            direction="raven_to_whatsapp",
-            message={
-                "message_id": message_id,
-                "sender": message.get("sender"),
-                "body": content,
-                "twilio": response,
-            },
-        )
-        _remember(message_id)
+            frappe.logger().info(
+                "Raven -> WhatsApp successful: "
+                "message=%s sid=%s",
+                message_id,
+                sid,
+            )
+
+            update_cursor(message)
+
+        except Exception:
+            frappe.log_error(
+                title="Raven to WhatsApp Failed",
+                message=(
+                    f"Raven Message: {message_id}\n"
+                    f"Text: {text}\n"
+                    f"Customer: {customer_number}\n\n"
+                    f"{frappe.get_traceback()}"
+                ),
+            )
+            return

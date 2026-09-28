@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import json
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
@@ -6,7 +5,6 @@ from urllib.parse import urlsplit
 import frappe
 from frappe import _
 from frappe.exceptions import ValidationError
-from frappe.rate_limiter import rate_limit
 from frappe.utils import get_url
 from frappe.utils.oauth import (
 	SignupDisabledError,
@@ -15,35 +13,45 @@ from frappe.utils.oauth import (
 	get_user_record,
 	update_oauth_user,
 )
-
-if TYPE_CHECKING:
-	from frappe.core.doctype.user.user import User
-=======
-import frappe
-from frappe import _
 from frappe.utils.response import Response
 
 from .integrations.config import require_setting
 from .integrations.raven import RavenClient
-from .realtime import publish_message
 from .integrations.twilio import validate_webhook_signature
+from .realtime import publish_message
 
+
+if TYPE_CHECKING:
+	from frappe.core.doctype.user.user import User
+
+
+# ---------------------------------------------------------------------------
+# Raven channel
+# ---------------------------------------------------------------------------
 
 def get_raven_channel_and_sales_order(sender_phone: str):
-	"""Find matching Sales Order or fallback to default channel."""
-	clean_phone = sender_phone.replace("whatsapp:", "").strip()
+	"""
+	Return the fixed Raven channel used by the WhatsApp PoC.
 
-	try:
-		so = frappe.db.get_value(
-			"Sales Order",
-			filters={"docstatus": ["<", 2], "contact_phone": ["like", f"%{clean_phone}%"]},
-			fieldname=["name", "custom_raven_channel", "contact_phone"],
-			as_dict=True,
-		)
-		if so and so.get("custom_raven_channel_id"):
-			return so.custom_raven_channel_id, so.name
-	except Exception as e:
-		frappe.logger().warning(f"Sales Order lookup error: {e}")
+	For this PoC we intentionally do NOT:
+	- search Sales Orders
+	- search customer records
+	- listen to Raven events
+
+	Every incoming WhatsApp message goes to the configured Raven channel.
+	"""
+
+	channel_id = require_setting("raven_channel_id")
+
+	if not channel_id:
+		frappe.throw(_("Raven channel ID is not configured"))
+
+	return channel_id, None
+
+
+# ---------------------------------------------------------------------------
+# Social login
+# ---------------------------------------------------------------------------
 
 def _get_social_redirect_url() -> str:
 	redirect_url = frappe.conf.get("social_login_redirect_url")
@@ -66,8 +74,13 @@ def _get_social_redirect_url() -> str:
 	return redirect_url
 
 
-def _is_missing_client_secret(error: ValidationError, provider: str) -> bool:
-	return str(error) == (f"Password not found for Social Login Key {provider} client_secret")
+def _is_missing_client_secret(
+	error: ValidationError,
+	provider: str,
+) -> bool:
+	return str(error) == (
+		f"Password not found for Social Login Key {provider} client_secret"
+	)
 
 
 @frappe.whitelist(allow_guest=True)
@@ -84,7 +97,8 @@ def get_social_login_urls() -> dict[str, str]:
 		except ValidationError as error:
 			if _is_missing_client_secret(error, provider):
 				frappe.logger().warning(
-					"Skipping social login provider '%s': client secret is not configured",
+					"Skipping social login provider '%s': "
+					"client secret is not configured",
 					provider,
 				)
 				continue
@@ -94,64 +108,92 @@ def get_social_login_urls() -> dict[str, str]:
 	return social_login_urls
 
 
+# ---------------------------------------------------------------------------
+# Login helpers
+# ---------------------------------------------------------------------------
+
 def get_login_with_email_link_ratelimit() -> int:
-	return frappe.get_system_settings("rate_limit_email_link_login") or 5
+	return frappe.get_system_settings(
+		"rate_limit_email_link_login"
+	) or 5
 
 
-def _generate_temporary_login_link(email: str, expiry: int):
+def _generate_temporary_login_link(
+	email: str,
+	expiry: int,
+):
 	assert isinstance(email, str)
 
 	key = frappe.generate_hash()
-	frappe.cache.set_value(f"one_time_login_key:{key}", email, expires_in_sec=expiry * 60)
+
+	frappe.cache.set_value(
+		f"one_time_login_key:{key}",
+		email,
+		expires_in_sec=expiry * 60,
+	)
 
 	return get_url(
 		f"/api/method/spectrum_ps.api.login_via_key?key={key}",
 		allow_header_override=False,
 	)
 
+
+# ---------------------------------------------------------------------------
+# Customer enquiry
+# ---------------------------------------------------------------------------
+
 @frappe.whitelist(allow_guest=True, methods=["POST"])
-def contact_us(user_name, email_id, phone_no, message):
-	"""Allows Guest users to to raise enquiry"""
+def contact_us(
+	user_name,
+	email_id,
+	phone_no,
+	message,
+):
+	"""Allow guest users to raise an enquiry."""
+
 	doc = frappe.get_doc(
-        {
-            "doctype": "Customer Inquiry",
-            "user_name": user_name,
-            "email_id": email_id,
-            "phone_no": phone_no,
-            "message": message,
-        }
-    )
+		{
+			"doctype": "Customer Inquiry",
+			"user_name": user_name,
+			"email_id": email_id,
+			"phone_no": phone_no,
+			"message": message,
+		}
+	)
+
 	doc.insert(ignore_permissions=True)
-	return {"status": "success", "name": doc.name}
+
+	return {
+		"status": "success",
+		"name": doc.name,
+	}
+
+
+# ---------------------------------------------------------------------------
+# Login via key
+# ---------------------------------------------------------------------------
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
-# @rate_limit(limit=get_login_with_email_link_ratelimit, seconds=60 * 60)
 def login_via_key(key: str):
 	"""
-	Accept a previously generated login key (sent to the user) and login, then
-	redirect to the home page
+	Accept a previously generated login key and login the user.
 	"""
 
 	cache_key = f"one_time_login_key:{key}"
 	email = frappe.cache.get_value(cache_key)
 
-	# TODO: Implement phone number authentication
-
 	if email:
-		# TODO: Should this be removed? This immediately invalidates the key, so it becomes one-time use.
-		# Instead, just directly redirect to the home page
-		# frappe.cache.delete_value(cache_key)
-
-		# TODO: Defaults change?
 		data = {
 			"email": email,
 			"first_name": email,
 			"last_name": "",
-			"sub": email,  # user_id_property
+			"sub": email,
 		}
 
-		# Allow to be logged in as this user
-		frappe.log(f"Logging in with `{email}`")
+		frappe.log(
+			f"Logging in with `{email}`"
+		)
+
 		return login_website_user(data)
 
 	frappe.respond_as_web_page(
@@ -163,48 +205,83 @@ def login_via_key(key: str):
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
-# @rate_limit(limit=get_login_with_email_link_ratelimit, seconds=60 * 60)
 def send_customer_email_login_link(email: str):
 	try:
-		expiry = frappe.get_system_settings("login_with_email_link_expiry") or 10
-		link = _generate_temporary_login_link(email, expiry)
+		expiry = (
+			frappe.get_system_settings(
+				"login_with_email_link_expiry"
+			)
+			or 10
+		)
+
+		link = _generate_temporary_login_link(
+			email,
+			expiry,
+		)
 
 		app_name = (
-			frappe.get_website_settings("app_name") or frappe.get_system_settings("app_name") or _("Frappe")
+			frappe.get_website_settings("app_name")
+			or frappe.get_system_settings("app_name")
+			or _("Frappe")
 		)
 
 		subject = _("Login To {0}").format(app_name)
-		frappe.log(f"Sending mail to {email} with subject {subject}")
 
-		# Send E-mail to the given address
+		frappe.log(
+			f"Sending mail to {email} "
+			f"with subject {subject}"
+		)
+
 		mail_queue = frappe.sendmail(
 			subject=subject,
 			recipients=email,
 			template="login_with_email_link",
-			args={"link": link, "minutes": expiry, "app_name": app_name},
+			args={
+				"link": link,
+				"minutes": expiry,
+				"app_name": app_name,
+			},
 			with_container=True,
-			# TODO: This param is new in v16.35
-			# wrapper="templates/emails/auth_email.html",
 			now=True,
 		)
-		frappe.log(f"Mail to {email} in queue with queue id {mail_queue.name}")
 
-		return {"status": "ok", "email_queue": mail_queue.name}
+		frappe.log(
+			f"Mail to {email} in queue "
+			f"with queue id {mail_queue.name}"
+		)
+
+		return {
+			"status": "ok",
+			"email_queue": mail_queue.name,
+		}
 
 	except frappe.DoesNotExistError:
 		frappe.clear_messages()
+
 	except frappe.OutgoingEmailError:
 		frappe.clear_messages()
-		frappe.log_error(title="Login link email could not be sent", message=frappe.get_traceback())
+
+		frappe.log_error(
+			title="Login link email could not be sent",
+			message=frappe.get_traceback(),
+		)
+
 	except Exception:
 		frappe.clear_messages()
+
 		frappe.log_error(
 			title="Login link generation failed unexpectedly",
 			message=frappe.get_traceback(),
 		)
 
-	frappe.throw(f"Failed to send email to address {email}")
+	frappe.throw(
+		f"Failed to send email to address {email}"
+	)
 
+
+# ---------------------------------------------------------------------------
+# Website user login
+# ---------------------------------------------------------------------------
 
 def login_website_user(
 	data: dict | str,
@@ -212,14 +289,13 @@ def login_website_user(
 	provider: str | None = None,
 ):
 	"""
-	Utility method to get / create a new website user using email address, and log-in with it (no credentials)
+	Utility method to get/create a website user using an email address
+	and log them in without credentials.
 	"""
 
 	if isinstance(data, str):
 		data = json.loads(data)
 
-	# All user emails are stored as lowercase, but OAuth provider could have it in mixed case.
-	# We pass the email as-is to LoginManager, which could result in a session with an incorrect email.
 	user = get_email(data).lower()
 
 	if not user:
@@ -230,7 +306,11 @@ def login_website_user(
 		return
 
 	try:
-		if update_oauth_user(user, data, provider) is False:
+		if update_oauth_user(
+			user,
+			data,
+			provider,
+		) is False:
 			return
 
 	except SignupDisabledError:
@@ -243,19 +323,19 @@ def login_website_user(
 
 	frappe.db.commit()
 
-	# Only allow Website users. Show error (and admin redirect link) page
-	# NOTE: this is re-fetched as `update_oauth_user` does not return the new user instance.
-	this_user: User = get_user_record(user, data, provider)
-	print("User:", this_user)
-	print(f"This user: {this_user}, type: {this_user.user_type}")
-	frappe.log(f"This user: {this_user}, type: {this_user.user_type}")
+	this_user: User = get_user_record(
+		user,
+		data,
+		provider,
+	)
 
 	if this_user.user_type != "Website User":
-		# Show error as user is overprivileged, and ask to use admin portal instead
 		return frappe.respond_as_web_page(
 			_("Not Permitted"),
 			_(
-				"You are trying to log in using an administrator account. This portal is restricted to website users only. Please use the Administrator portal to log in instead."
+				"You are trying to log in using an administrator account. "
+				"This portal is restricted to website users only. "
+				"Please use the Administrator portal to log in instead."
 			),
 			http_status_code=403,
 			indicator_color="red",
@@ -263,37 +343,163 @@ def login_website_user(
 			primary_label="Open Admin portal",
 		)
 
-	# Success path
 	frappe.local.login_manager.login_as(user)
+
 	frappe.local.response["type"] = "redirect"
 	frappe.local.response["location"] = "/website-redirect"
 
-	# Fallback to the channel ID defined in your config (e.g., tkt-001 channel)
-	default_channel = require_setting("raven_channel_id")
-	return default_channel, None
 
+# ---------------------------------------------------------------------------
+# WhatsApp -> Raven
+# ---------------------------------------------------------------------------
 
 @frappe.whitelist(allow_guest=True)
 def whatsapp_webhook(*args, **kwargs):
-	"""Receive an inbound WhatsApp message from Twilio and forward it to Raven."""
-	request_url = getattr(frappe.request, "url", "") if frappe.request else ""
+	"""
+	Receive an inbound WhatsApp message from Twilio
+	and send it to the configured Raven channel.
+
+	Flow:
+
+	WhatsApp
+	    ↓
+	Twilio
+	    ↓
+	ngrok
+	    ↓
+	Frappe webhook
+	    ↓
+	RavenClient
+	    ↓
+	Raven Bot API
+	    ↓
+	Fixed Raven Channel
+	"""
+
+	# ---------------------------------------------------------------
+	# 1. Get Twilio request
+	# ---------------------------------------------------------------
+
+	request_url = (
+		getattr(
+			frappe.request,
+			"url",
+			"",
+		)
+		if frappe.request
+		else ""
+	)
+
 	form = frappe.form_dict or {}
 
-	if request_url and not validate_webhook_signature(request_url, form):
-		frappe.throw(_("Invalid Twilio signature"), frappe.PermissionError)
+	# ---------------------------------------------------------------
+	# 2. Validate Twilio signature
+	# ---------------------------------------------------------------
 
-	sender = form.get("From", "")
-	profile_name = form.get("ProfileName") or sender
-	body = form.get("Body", "")
+	if request_url and not validate_webhook_signature(
+		request_url,
+		form,
+	):
+		frappe.throw(
+			_("Invalid Twilio signature"),
+			frappe.PermissionError,
+		)
+
+	# ---------------------------------------------------------------
+	# 3. Extract WhatsApp message
+	# ---------------------------------------------------------------
+
+	sender = (
+		form.get("From")
+		or ""
+	).strip()
+
+	profile_name = (
+		form.get("ProfileName")
+		or sender
+	).strip()
+
+	body = (
+		form.get("Body")
+		or ""
+	).strip()
+
 	message_sid = form.get("MessageSid")
 
-	channel_id, so_name = get_raven_channel_and_sales_order(sender)
+	# ---------------------------------------------------------------
+	# 4. Validate sender
+	# ---------------------------------------------------------------
 
-	raven_text = f"WhatsApp - {profile_name} ({sender}): {body}"
-	# Send to Raven and tag flags to avoid loop
-	raven_response = RavenClient().send_message(text=raven_text, channel=channel_id)
-	if hasattr(raven_response, "flags"):
-		raven_response.flags.from_whatsapp = True
+	if not sender:
+		frappe.throw(
+			_("Missing WhatsApp sender")
+		)
+
+	# ---------------------------------------------------------------
+	# 5. Validate message body
+	# ---------------------------------------------------------------
+
+	if not body:
+		frappe.logger().warning(
+			"Received empty WhatsApp message from %s",
+			sender,
+		)
+
+		return Response(
+			'<?xml version="1.0" encoding="UTF-8"?>'
+			"<Response></Response>",
+			content_type="application/xml",
+		)
+
+	# ---------------------------------------------------------------
+	# 6. Get fixed Raven channel
+	# ---------------------------------------------------------------
+
+	channel_id, _ = get_raven_channel_and_sales_order(
+		sender
+	)
+
+	# ---------------------------------------------------------------
+	# 7. Build Raven message
+	# ---------------------------------------------------------------
+
+	raven_text = (
+		f"WhatsApp - {profile_name} "
+		f"({sender}): {body}"
+	)
+
+	# ---------------------------------------------------------------
+	# 8. Send message to Raven
+	# ---------------------------------------------------------------
+
+	try:
+		raven_response = RavenClient().send_message(
+			text=raven_text,
+			channel=channel_id,
+		)
+
+	except Exception:
+		frappe.log_error(
+			title="WhatsApp to Raven Failed",
+			message=(
+				f"Sender: {sender}\n"
+				f"Channel: {channel_id}\n"
+				f"Message SID: {message_sid}\n\n"
+				f"{frappe.get_traceback()}"
+			),
+		)
+
+		# Return an empty TwiML response instead of exposing
+		# internal Raven/Frappe errors to Twilio.
+		return Response(
+			'<?xml version="1.0" encoding="UTF-8"?>'
+			"<Response></Response>",
+			content_type="application/xml",
+		)
+
+	# ---------------------------------------------------------------
+	# 9. Publish local realtime notification
+	# ---------------------------------------------------------------
 
 	publish_message(
 		"spectrum_ps_whatsapp_message",
@@ -301,14 +507,19 @@ def whatsapp_webhook(*args, **kwargs):
 		message={
 			"message_sid": message_sid,
 			"from": sender,
+			"profile_name": profile_name,
 			"body": body,
 			"channel_id": channel_id,
 			"raven": raven_response,
 		},
 	)
 
+	# ---------------------------------------------------------------
+	# 10. Return TwiML to Twilio
+	# ---------------------------------------------------------------
+
 	return Response(
-		'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+		'<?xml version="1.0" encoding="UTF-8"?>'
+		"<Response></Response>",
 		content_type="application/xml",
 	)
-
