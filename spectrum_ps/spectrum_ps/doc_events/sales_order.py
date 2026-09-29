@@ -78,7 +78,7 @@ def create_raven_channel(doc: "Sales Order", method=None):
 	frappe.log(f"Adding Raven Bot `{customer.custom_raven_bot}` to Channel `{raven_channel.name}`")
 	bot_user = frappe.get_cached_doc("Raven Bot", customer.custom_raven_bot)
 
-	add_to_channel(bot_user, raven_channel.name)
+	bot_add_to_channel(bot_user, raven_channel.name)
 	frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
 
 	# TODO: Add Realtor's bot
