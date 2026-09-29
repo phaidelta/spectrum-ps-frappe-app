@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 
 
-def add_assigned_user(doc, method=None):
+def add_assigned_user(doc: "ToDo", method=None):
 	if doc.reference_type != "Sales Order" or not doc.allocated_to:
 		return
 
@@ -18,6 +18,13 @@ def add_assigned_user(doc, method=None):
 		frappe.throw(_("ToDo {0} references a missing Sales Order.").format(doc.name))
 
 	sales_order = frappe.get_cached_doc(doc.reference_type, doc.reference_name)
+
+	# TODO: Do not allow 2 ppl to be assigned to one sales order
+	# Find all previous linked ToDo of sales order that is not doc
+	#  frappe.get_all(filter=[name not doc.name])
+	# if ....:
+	# 	log
+	# 	remove the old assignment (delete old ToDo Doc)
 
 	if not sales_order.customer:
 		frappe.log(f"Sales Order `{sales_order.name}` has no Customer linked")
