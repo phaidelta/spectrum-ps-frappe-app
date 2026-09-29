@@ -108,7 +108,7 @@ def _notify_admin(
 
     try:
         frappe.sendmail(
-            recipients=admin_email,
+            recipients=[admin_email],
             reply_to=doc.email_id,
             subject=f"New Inquiry {doc.name} from {doc.user_name}",
             message=(
@@ -116,14 +116,14 @@ def _notify_admin(
                 f"<p><b>Email:</b> {frappe.utils.escape_html(doc.email_id)}</p>"
                 f"<p><b>Phone:</b> {frappe.utils.escape_html(doc.phone_no)}</p>"
                 f"<p><b>Message:</b></p>"
-                f"<p>{frappe.utils.escape_html(doc.message).replace(char(10), '<br>')}</p>"
+                f"<p>{frappe.utils.escape_html(doc.message).replace(chr(10), '<br>')}</p>"
             ),
             reference_doctype=doc.doctype,
             reference_name=doc.name,
             delayed=True,
         )
     except Exception:
-        frappe.log_error(frappe.get_traceback(), "Conta Us: admin email failed")
+        frappe.log_error(frappe.get_traceback(), "Contact Us: admin email failed")
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
@@ -132,6 +132,12 @@ def contact_us(user_name, email_id, phone_no, message):
 
     if not validate_email_address(email_id):
         frappe.throw("Invalid email address")
+
+    if not message or len(message.strip()) < 10:
+        frappe.throw("Message is too short")
+
+    if len(message.strip()) > 2000:
+        frappe.throw("Message is too long")
 
     doc = frappe.get_doc(
         {
