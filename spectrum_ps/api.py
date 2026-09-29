@@ -267,8 +267,6 @@ def login_website_user(
 	# Only allow Website users. Show error (and admin redirect link) page
 	# NOTE: this is re-fetched as `update_oauth_user` does not return the new user instance.
 	this_user: User = get_user_record(user, data, provider)
-	print("User:", this_user)
-	print(f"This user: {this_user}, type: {this_user.user_type}")
 	frappe.log(f"This user: {this_user}, type: {this_user.user_type}")
 
 	if this_user.user_type != "Website User":
