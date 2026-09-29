@@ -1,8 +1,6 @@
 import frappe
 from frappe import _
 
-from ..utils import ignore_permissions
-
 
 def bot_add_to_channel(bot, channel_id: str) -> str:
 	"""
