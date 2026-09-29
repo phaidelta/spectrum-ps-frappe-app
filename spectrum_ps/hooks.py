@@ -5,6 +5,7 @@ app_description = "Spectrum PS application integration"
 app_email = "admin@phaidelta.com"
 app_license = "mit"
 
+
 # Apps
 # ------------------
 
@@ -144,18 +145,9 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
-
 doc_events = {
 	"Customer": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
-		# "on_update": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.customer.remove_customer_bot",
 	},
 	"Raven Bot": {
@@ -170,6 +162,9 @@ doc_events = {
 		"before_save": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_cancel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_trash",
 	},
+        "Raven Message": {
+                         "after_insert": "spectrum_ps.api.send_outbound_whatsapp"
+        },
 }
 
 
@@ -196,109 +191,22 @@ fixtures = [
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"spectrum_ps.tasks.all"
-# 	],
-# 	"daily": [
-# 		"spectrum_ps.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"spectrum_ps.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"spectrum_ps.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"spectrum_ps.tasks.monthly"
-# 	],
-# }
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": [
+            [
+                "dt",
+                "in",
+                [
+                    "Customer",
+                    "Item",
+                    "Address",
+                    "Sales Order",
+                    "Sales Order Item",
+                ],
+            ]
+        ],
+    }
+]
 
-# Testing
-# -------
-
-# before_tests = "spectrum_ps.install.before_tests"
-
-# Extend DocType Class
-# ------------------------------
-#
-# Specify custom mixins to extend the standard doctype controller.
-# extend_doctype_class = {
-# 	"Task": "spectrum_ps.custom.task.CustomTaskMixin"
-# }
-
-# Overriding Methods
-# ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "spectrum_ps.event.get_events"
-# }
-#
-# each overriding function accepts a `data` argument;
-# generated from the base implementation of the doctype dashboard,
-# along with any modifications made in other Frappe apps
-# override_doctype_dashboards = {
-# 	"Task": "spectrum_ps.task.get_dashboard_data"
-# }
-
-# exempt linked doctypes from being automatically cancelled
-#
-# auto_cancel_exempted_doctypes = ["Auto Repeat"]
-
-# Ignore links to specified DocTypes when deleting documents
-# -----------------------------------------------------------
-
-# ignore_links_on_delete = ["Communication", "ToDo"]
-
-# Request Events
-# ----------------
-# before_request = ["spectrum_ps.utils.before_request"]
-# after_request = ["spectrum_ps.utils.after_request"]
-
-# Job Events
-# ----------
-# before_job = ["spectrum_ps.utils.before_job"]
-# after_job = ["spectrum_ps.utils.after_job"]
-
-# User Data Protection
-# --------------------
-
-# user_data_fields = [
-# 	{
-# 		"doctype": "{doctype_1}",
-# 		"filter_by": "{filter_by}",
-# 		"redact_fields": ["{field_1}", "{field_2}"],
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_2}",
-# 		"filter_by": "{filter_by}",
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_3}",
-# 		"strict": False,
-# 	},
-# 	{
-# 		"doctype": "{doctype_4}"
-# 	}
-# ]
-
-# Authentication and authorization
-# --------------------------------
-
-# auth_hooks = [
-# 	"spectrum_ps.auth.validate"
-# ]
-
-# Automatically update python controller files with type annotations for this app.
-# export_python_type_annotations = True
-
-# default_log_clearing_doctypes = {
-# 	"Logging DocType Name": 30  # days to retain logs
-# }
-
-# Translation
-# ------------
-# List of apps whose translatable strings should be excluded from this app's translations.
-# ignore_translatable_strings_from = []
