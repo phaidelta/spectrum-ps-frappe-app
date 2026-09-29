@@ -26,7 +26,7 @@ def add_assigned_user(doc, method=None):
 		frappe.log(f"Sales Order `{sales_order.name}` has no Raven Channel linked")
 		frappe.throw(_("Sales Order {0} must have a Raven Channel linked.").format(sales_order.name))
 
-	if sales_order.custom_ticket_status == "New":
+	if sales_order.custom_ticket_status in ["New", "Reopened"]:
 		frappe.log(f"Updating Sales Order `{sales_order.name}` ticket status to Assigned")
 		sales_order.custom_ticket_status = "Assigned"
 		sales_order.save(ignore_permissions=True)
