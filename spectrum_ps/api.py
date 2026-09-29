@@ -151,6 +151,7 @@ def contact_us(user_name, email_id, phone_no, message):
     doc.insert(ignore_permissions=True)
 
     _notify_admin(doc)
+    doc.submit()
 
     return {"status": "success", "name": doc.name}
 
