@@ -1,8 +1,7 @@
+import frappe
 import json
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
-import requests
-import frappe
 from frappe import _
 from frappe.exceptions import ValidationError
 from frappe.rate_limiter import rate_limit
@@ -297,10 +296,12 @@ def whatsapp_webhook(*args, **kwargs):
 	channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)
 	raven_text = f"WhatsApp - {profile_name} ({sender}): {body}"
 
-	raven_response = RavenClient().send_message(
-		text=raven_text,
-		channel=channel_id,
-	)
+	frappe.flags.in_whatsapp_webhook = True
+	try:
+		bot = frappe.get_doc("Raven Bot", customer.custom_raven_bot)
+		raven_response = bot.send_message(channel_id=channel_id, text=raven_text)
+	finally:
+		frappe.flags.in_whatsapp_webhook = False
 
 	publish_message(
 		"spectrum_ps_whatsapp_message",
@@ -322,117 +323,3 @@ def whatsapp_webhook(*args, **kwargs):
 	)
 
 
-import frappe
-import requests
-
-@frappe.whitelist()
-def send_outbound_whatsapp(doc, method=None):
-    """Triggered automatically when a new Raven Message is created."""
-    print(f"\n================ [OUTBOUND HOOK TRIGGERED] ================")
-    print(f"Message ID: {doc.name}")
-
-    # Prevent loops from inbound webhook
-    if getattr(doc, "via_whatsapp", False) or getattr(frappe.flags, "in_whatsapp_webhook", False):
-        print("Skipped: Triggered by inbound WhatsApp webhook flag.")
-        return
-
-    # Extract Channel ID
-    channel_id = getattr(doc, "channel_id", None) or getattr(doc, "parent", None)
-    print(f"Channel ID resolved: {channel_id}")
-
-    if not channel_id:
-        print("Aborted: No channel ID found on doc.")
-        return
-
-    # Fetch Channel Document
-    try:
-        channel = frappe.get_doc("Raven Channel", channel_id)
-    except Exception as e:
-        print(f"Aborted: Could not fetch Raven Channel {channel_id} -> {e}")
-        return
-
-    # 1. Direct phone fields on Raven Channel
-    recipient_phone = (
-        getattr(channel, "mobile_no", None)
-        or getattr(channel, "phone", None)
-        or getattr(channel, "custom_mobile_no", None)
-    )
-
-    # 2. Extract phone via Sales Order derived from channel_name or linked_document
-    if not recipient_phone:
-        sales_order_name = getattr(channel, "linked_document", None)
-
-        # If linked_document is None, parse channel_name (e.g., 'sal-ord-2026-00007' -> 'SAL-ORD-2026-00007')
-        if not sales_order_name and getattr(channel, "channel_name", None):
-            sales_order_name = channel.channel_name.upper()
-
-        if sales_order_name and frappe.db.exists("Sales Order", sales_order_name):
-            so_doc = frappe.get_doc("Sales Order", sales_order_name)
-            # Direct phone fields on Sales Order
-            recipient_phone = (
-                getattr(so_doc, "contact_mobile", None)
-                or getattr(so_doc, "mobile_no", None)
-                or getattr(so_doc, "phone", None)
-            )
-
-            # Fallback to linked Contact or Customer
-            if not recipient_phone and getattr(so_doc, "customer", None):
-                contact_name = frappe.db.get_value("Dynamic Link", {
-                    "link_doctype": "Customer",
-                    "link_name": so_doc.customer,
-                    "parenttype": "Contact"
-                }, "parent")
-
-                if contact_name:
-                    contact = frappe.get_doc("Contact", contact_name)
-                    recipient_phone = contact.mobile_no or contact.phone
-
-                # Fallback to Customer document mobile
-                if not recipient_phone:
-                    customer_doc = frappe.get_doc("Customer", so_doc.customer)
-                    recipient_phone = getattr(customer_doc, "mobile_no", None) or getattr(customer_doc, "phone", None)
-
-    print(f"Recipient Phone resolved: {recipient_phone}")
-
-    if not recipient_phone:
-        print(f"Aborted: No phone number associated with channel {channel_id} or Sales Order.")
-        return
-
-    # Sanitize Phone Number (digits only)
-    recipient_phone = "".join(filter(str.isdigit, str(recipient_phone)))
-
-    # Fetch API Credentials
-    phone_number_id = frappe.conf.get("whatsapp_phone_number_id")
-    access_token = frappe.conf.get("whatsapp_access_token")
-
-    if not phone_number_id or not access_token:
-        print("Aborted: Missing whatsapp_phone_number_id or whatsapp_access_token in site_config.json")
-        return
-
-    # Call Meta API
-    url = f"https://graph.facebook.com/v18.0/{phone_number_id}/messages"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-    message_text = doc.text or getattr(doc, "content", "")
-    payload = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": recipient_phone,
-        "type": "text",
-        "text": {
-            "preview_url": False,
-            "body": message_text
-        }
-    }
-
-    print(f"Posting to Meta API: {url} | To: {recipient_phone}")
-    response = requests.post(url, json=payload, headers=headers)
-
-    print(f"Meta Response Code: {response.status_code}")
-    print(f"Meta Response Data: {response.text}")
-    print(f"===========================================================\n")
-
-    if response.status_code != 200:
-        frappe.log_error(title="WhatsApp Outbound Failed", message=response.text)
