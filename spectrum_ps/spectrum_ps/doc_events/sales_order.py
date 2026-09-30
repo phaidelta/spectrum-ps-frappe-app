@@ -98,6 +98,7 @@ def create_raven_channel(doc: "Sales Order", method=None):
 			members=members,
 		)
 
+
 def remove_raven_channel(doc: "Sales Order", method=None):
 	channel_name = getattr(doc, "custom_raven_channel", None)
 	if not channel_name:

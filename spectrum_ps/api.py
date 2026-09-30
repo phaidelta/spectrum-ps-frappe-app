@@ -1,8 +1,9 @@
-import frappe
 import json
 import os
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
+
+import frappe
 from frappe import _
 from frappe.exceptions import ValidationError
 from frappe.rate_limiter import rate_limit
@@ -16,6 +17,7 @@ from frappe.utils.oauth import (
 )
 from frappe.utils.response import Response
 
+from .integrations.config import require_setting
 from .integrations.raven import RavenClient
 from .integrations.twilio import validate_webhook_signature
 from .messaging import get_active_sales_order_for_customer, get_customer_by_whatsapp
@@ -24,21 +26,19 @@ from .realtime import publish_message
 if TYPE_CHECKING:
 	from frappe.core.doctype.user.user import User
 
+ALLOWED_PROVIDERS = frozenset({"google", "facebook"})
+
 
 def get_raven_channel_and_sales_order(sender_phone: str):
 	"""Resolve WhatsApp sender -> Customer -> active Sales Order -> Raven Channel."""
 	customer = get_customer_by_whatsapp(sender_phone)
 	so = get_active_sales_order_for_customer(customer.name)
 	if not so:
-		frappe.throw(
-			_("Customer {0} has no active In Progress Sales Order.").format(customer.name)
-		)
+		frappe.throw(_("Customer {0} has no active In Progress Sales Order.").format(customer.name))
 
 	channel_id = so.custom_raven_channel
 	if not channel_id:
-		frappe.throw(
-			_("Sales Order {0} has no Raven Channel.").format(so.name)
-		)
+		frappe.throw(_("Sales Order {0} has no Raven Channel.").format(so.name))
 
 	return channel_id, so.name, customer
 
@@ -375,5 +375,3 @@ def whatsapp_webhook(*args, **kwargs):
 		'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
 		content_type="application/xml",
 	)
-
-
