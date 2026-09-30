@@ -172,6 +172,27 @@ doc_events = {
 	},
 }
 
+
+fixtures = [
+	{
+		"dt": "Custom Field",
+		"filters": [
+			[
+				"dt",
+				"in",
+				[
+					"Customer",
+					"Item",
+					"Address",
+					"Sales Order",
+					"Sales Order Item",
+				],
+			]
+		],
+	}
+]
+
+
 # Scheduled Tasks
 # ---------------
 

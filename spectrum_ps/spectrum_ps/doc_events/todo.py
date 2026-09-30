@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 
 
-def add_assigned_user(doc, method=None):
+def add_assigned_user(doc: "ToDo", method=None):
 	if doc.reference_type != "Sales Order" or not doc.allocated_to:
 		return
 
@@ -19,6 +19,13 @@ def add_assigned_user(doc, method=None):
 
 	sales_order = frappe.get_cached_doc(doc.reference_type, doc.reference_name)
 
+	# TODO: Do not allow 2 ppl to be assigned to one sales order
+	# Find all previous linked ToDo of sales order that is not doc
+	#  frappe.get_all(filter=[name not doc.name])
+	# if ....:
+	# 	log
+	# 	remove the old assignment (delete old ToDo Doc)
+
 	if not sales_order.customer:
 		frappe.log(f"Sales Order `{sales_order.name}` has no Customer linked")
 		frappe.throw(_("Sales Order {0} must have a Customer linked.").format(sales_order.name))
@@ -26,7 +33,7 @@ def add_assigned_user(doc, method=None):
 		frappe.log(f"Sales Order `{sales_order.name}` has no Raven Channel linked")
 		frappe.throw(_("Sales Order {0} must have a Raven Channel linked.").format(sales_order.name))
 
-	if sales_order.custom_ticket_status == "New":
+	if sales_order.custom_ticket_status in ["New", "Reopened"]:
 		frappe.log(f"Updating Sales Order `{sales_order.name}` ticket status to Assigned")
 		sales_order.custom_ticket_status = "Assigned"
 		sales_order.save(ignore_permissions=True)

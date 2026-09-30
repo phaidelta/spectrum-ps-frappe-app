@@ -1,7 +1,26 @@
 import frappe
 from frappe import _
 
-from ..utils import ignore_permissions
+
+def bot_add_to_channel(bot, channel_id: str) -> str:
+	"""
+	Add the bot to a channel as a member
+
+	If the bot is already a member of the channel, this function does nothing
+
+	Returns the member_id of the bot in the channel
+	"""
+
+	existing_member = bot.is_member(channel_id)
+
+	if not existing_member:
+		raven_channel_member = frappe.get_doc(
+			doctype="Raven Channel Member", user_id=bot.raven_user, channel_id=channel_id
+		)
+		raven_channel_member.insert(ignore_permissions=True)
+		return raven_channel_member.name
+	else:
+		return existing_member
 
 
 def create_raven_channel(doc: "Sales Order", method=None):
@@ -57,8 +76,7 @@ def create_raven_channel(doc: "Sales Order", method=None):
 	frappe.log(f"Adding Raven Bot `{customer.custom_raven_bot}` to Channel `{raven_channel.name}`")
 	bot_user = frappe.get_cached_doc("Raven Bot", customer.custom_raven_bot)
 
-	with ignore_permissions():
-		bot_user.add_to_channel(raven_channel.name)
+	bot_add_to_channel(bot_user, raven_channel.name)
 	frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
 
 	# TODO: Add Realtor's bot

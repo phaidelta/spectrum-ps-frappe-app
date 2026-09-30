@@ -88,23 +88,25 @@ def _generate_temporary_login_link(email: str, expiry: int):
 	)
 
 
-def _get_admin_email():
-	# return os.environ.get("CONTACT_US_RECIPIENT") or frappe.conf.get("contact_us_recipient")
-	return frappe.db.get_value("User", "Administrator", "email")
+def _get_mail_group_recipients(email_group: str):
+	# Fetch members from mailing group
+	members = frappe.get_all(
+		"Email Group Member", filters={"email_group": email_group, "unsubscribed": 0}, pluck="email"
+	)
+	return members
 
 
-def _notify_admin(
-	doc,
-):
-	admin_email = _get_admin_email()
+def _notify_admin(doc, email_group: str):
+	recipients = _get_mail_group_recipients(email_group)
 
-	if not admin_email:
-		frappe.log_error("CONTACT_US_RECIPIENT is not set", "Contact Us")
+	if not recipients:
+		frappe.logger().warning(f"There are no recipients present in the Email group `{email_group}`.")
 		return
 
 	try:
 		frappe.sendmail(
-			recipients=[admin_email],
+			recipients=recipients,
+			expose_recipients="header",
 			reply_to=doc.email_id,
 			subject=f"New Inquiry {doc.name} from {doc.user_name}",
 			message=(
@@ -126,6 +128,8 @@ def _notify_admin(
 def contact_us(user_name, email_id, phone_no, message):
 	"""Allows Guest users to to raise enquiry"""
 
+	EMAIL_GROUP = "Customer Inquiry"
+
 	if not validate_email_address(email_id):
 		frappe.throw("Invalid email address")
 
@@ -146,7 +150,8 @@ def contact_us(user_name, email_id, phone_no, message):
 	)
 	doc.insert(ignore_permissions=True)
 
-	_notify_admin(doc)
+	_notify_admin(doc, EMAIL_GROUP)
+
 	doc.submit()
 
 	return {"status": "success", "name": doc.name}
