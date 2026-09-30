@@ -28,7 +28,7 @@ def create_raven_channel(doc: "Sales Order", method=None):
 		)
 		raven_channel.insert(ignore_permissions=True)
 
-	doc.db_set("custom_raven_channel", raven_channel.name, update_modified=False)
+	doc.custom_raven_channel = raven_channel.name
 	if not doc.customer:
 		frappe.log(f"Sales Order `{doc.name}` has no Customer linked")
 		frappe.throw(
@@ -60,24 +60,25 @@ def create_raven_channel(doc: "Sales Order", method=None):
 		bot_user.add_to_channel(raven_channel.name)
 	frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
 
-	  admins = frappe.conf.get("spectrum_ps_raven_admins") or [doc.owner]
-	  members = [u for u in admins if frappe.db.exists("Raven User", u)]
-  	  if members:
+	admins = frappe.conf.get("spectrum_ps_raven_admins") or [doc.owner]
+	members = [u for u in admins if frappe.db.exists("Raven User", u)]
+	if members:
 		frappe.call(
-          	"raven.api.raven_channel_member.add_channel_members",
-          	channel_id=raven_channel.name,
-          	members=members,
-      		)
+			"raven.api.raven_channel_member.add_channel_members",
+			channel_id=raven_channel.name,
+			members=members,
+		)
+
 
 def remove_raven_channel(doc: "Sales Order", method=None):
-	channel_name = getattr(doc, "custom_raven_channel", None)
-	if not channel_name:
-		frappe.log(f"Sales Order `{doc.name}` has no Raven Channel to remove")
-		return
+		channel_name = getattr(doc, "custom_raven_channel", None)
+		if not channel_name:
+			frappe.log(f"Sales Order `{doc.name}` has no Raven Channel to remove")
+			return
 
-	if not frappe.db.exists("Raven Channel", channel_name):
-		frappe.log(f"Raven Channel `{channel_name}` for Sales Order `{doc.name}` was already removed")
-		return
+		if not frappe.db.exists("Raven Channel", channel_name):
+			frappe.log(f"Raven Channel `{channel_name}` for Sales Order `{doc.name}` was already removed")
+			return
 
-	frappe.log(f"Removing Raven Channel `{channel_name}` for Sales Order `{doc.name}`")
-	frappe.get_doc("Raven Channel", channel_name).delete(ignore_permissions=True)
+		frappe.log(f"Removing Raven Channel `{channel_name}` for Sales Order `{doc.name}`")
+		frappe.get_doc("Raven Channel", channel_name).delete(ignore_permissions=True)

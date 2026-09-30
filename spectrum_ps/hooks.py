@@ -154,7 +154,7 @@ doc_events = {
 		"on_update": "spectrum_ps.spectrum_ps.doc_events.customer.sync_customer_raven_user",
 	},
 	"Sales Order": {
-		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
+		"before_validate": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_raven_channel",
 	},
 	"ToDo": {
@@ -163,7 +163,7 @@ doc_events = {
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_trash",
 	},
 	"Raven Message": {
-			"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp"
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp"
 	},
 }
 
@@ -186,4 +186,3 @@ fixtures = [
         ],
     }
 ]
-

@@ -15,7 +15,6 @@ from frappe.utils.oauth import (
 )
 from frappe.utils.response import Response
 
-from .integrations.raven import RavenClient
 from .integrations.twilio import validate_webhook_signature
 from .messaging import get_active_sales_order_for_customer, get_customer_by_whatsapp
 from .realtime import publish_message
@@ -65,6 +64,9 @@ def _get_social_redirect_url() -> str:
 
 def _is_missing_client_secret(error: ValidationError, provider: str) -> bool:
 	return str(error) == (f"Password not found for Social Login Key {provider} client_secret")
+
+
+ALLOWED_PROVIDERS = frozenset({"google", "facebook"})
 
 
 @frappe.whitelist(allow_guest=True)
@@ -265,10 +267,6 @@ def login_website_user(
 	frappe.local.response["type"] = "redirect"
 	frappe.local.response["location"] = "/website-redirect"
 
-	# Fallback to the channel ID defined in your config (e.g., tkt-001 channel)
-	default_channel = require_setting("raven_channel_id")
-	return default_channel, None
-
 
 @frappe.whitelist(allow_guest=True)
 def whatsapp_webhook(*args, **kwargs):
@@ -321,5 +319,3 @@ def whatsapp_webhook(*args, **kwargs):
 		'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
 		content_type="application/xml",
 	)
-
-
