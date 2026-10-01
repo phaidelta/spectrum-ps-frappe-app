@@ -15,12 +15,32 @@ from frappe.utils.oauth import (
 	get_user_record,
 	update_oauth_user,
 )
+from frappe.utils.response import Response
+
+from .integrations.config import require_setting
+from .integrations.raven import RavenClient
+from .integrations.twilio import validate_webhook_signature
+from .messaging import get_active_sales_order_for_customer, get_customer_by_whatsapp
+from .realtime import publish_message
 
 if TYPE_CHECKING:
 	from frappe.core.doctype.user.user import User
 
-
 ALLOWED_PROVIDERS = frozenset({"google", "facebook"})
+
+
+def get_raven_channel_and_sales_order(sender_phone: str):
+	"""Resolve WhatsApp sender -> Customer -> active Sales Order -> Raven Channel."""
+	customer = get_customer_by_whatsapp(sender_phone)
+	so = get_active_sales_order_for_customer(customer.name)
+	if not so:
+		frappe.throw(_("Customer {0} has no active In Progress Sales Order.").format(customer.name))
+
+	channel_id = so.custom_raven_channel
+	if not channel_id:
+		frappe.throw(_("Sales Order {0} has no Raven Channel.").format(so.name))
+
+	return channel_id, so.name, customer
 
 
 def _get_social_redirect_url() -> str:
@@ -298,3 +318,56 @@ def login_website_user(
 	frappe.local.login_manager.login_as(user)
 	frappe.local.response["type"] = "redirect"
 	frappe.local.response["location"] = "/website-redirect"
+
+
+@frappe.whitelist(allow_guest=True)
+def whatsapp_webhook(*args, **kwargs):
+	"""Receive Twilio WhatsApp messages and route them to the customer's Raven channel."""
+	request_url = getattr(frappe.request, "url", "") if frappe.request else ""
+	form = frappe.form_dict or {}
+
+	if request_url and not validate_webhook_signature(request_url, form):
+		frappe.throw(_("Invalid Twilio signature"), frappe.PermissionError)
+
+	sender = (form.get("From") or "").strip()
+	profile_name = (form.get("ProfileName") or sender).strip()
+	body = (form.get("Body") or "").strip()
+	message_sid = form.get("MessageSid")
+
+	if not sender:
+		frappe.throw(_("Missing WhatsApp sender"))
+
+	if not body:
+		return Response(
+			'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+			content_type="application/xml",
+		)
+
+	channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)
+	raven_text = f"WhatsApp - {profile_name} ({sender}): {body}"
+
+	frappe.flags.in_whatsapp_webhook = True
+	try:
+		bot = frappe.get_doc("Raven Bot", customer.custom_raven_bot)
+		raven_response = bot.send_message(channel_id=channel_id, text=raven_text)
+	finally:
+		frappe.flags.in_whatsapp_webhook = False
+
+	publish_message(
+		"spectrum_ps_whatsapp_message",
+		direction="whatsapp_to_raven",
+		message={
+			"message_sid": message_sid,
+			"from": sender,
+			"customer": customer.name,
+			"sales_order": so_name,
+			"body": body,
+			"channel_id": channel_id,
+			"raven": raven_response,
+		},
+	)
+
+	return Response(
+		'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+		content_type="application/xml",
+	)

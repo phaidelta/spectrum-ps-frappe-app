@@ -59,6 +59,15 @@ def create_raven_channel(doc: "Sales Order", method=None):
 			members=[ADMIN_USER],
 		)
 
+	# admins = frappe.conf.get("spectrum_ps_raven_admins") or [doc.owner]
+	# members = [u for u in admins if frappe.db.exists("Raven User", u)]
+	# if members:
+	# 	frappe.call(
+	# 		"raven.api.raven_channel_member.add_channel_members",
+	# 		channel_id=raven_channel.name,
+	# 		members=members,
+	# 	)
+
 	if not doc.customer:
 		frappe.log(f"Sales Order `{doc.name}` has no Customer linked")
 		frappe.throw(

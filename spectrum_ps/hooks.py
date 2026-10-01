@@ -5,6 +5,7 @@ app_description = "Spectrum PS application integration"
 app_email = "admin@phaidelta.com"
 app_license = "mit"
 
+
 # Apps
 # ------------------
 
@@ -169,6 +170,9 @@ doc_events = {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.todo.add_assigned_user",
 		"before_save": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_cancel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_trash",
+	},
+	"Raven Message": {
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp"
 	},
 }
 
