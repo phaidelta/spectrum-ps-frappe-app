@@ -162,7 +162,7 @@ doc_events = {
 		"on_update": "spectrum_ps.spectrum_ps.doc_events.customer.sync_customer_raven_user",
 	},
 	"Sales Order": {
-		"before_validate": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_raven_channel",
 	},
 	"ToDo": {
