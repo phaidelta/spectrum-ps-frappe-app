@@ -49,7 +49,7 @@ def create_raven_channel(doc: "Sales Order", method=None):
 
 	frappe.log(f"Linking raven channel {raven_channel.name} to Sales Order {doc.name}")
 	doc.custom_raven_channel = raven_channel.name
-	doc.save()
+	doc.save(ignore_permissions=True)
 
 	# Add administrator to the channel
 	# TODO: Add from a preset list or using some heuristic

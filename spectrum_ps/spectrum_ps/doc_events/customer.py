@@ -3,7 +3,7 @@ from frappe import _
 
 
 def _get_bot_id(doc):
-	return f"customer - {doc.name}"
+	return f"{doc.name} (Customer)"
 
 
 def create_customer_bot(doc, method):
@@ -65,7 +65,7 @@ def sync_customer_raven_user(doc, method=None):
 def remove_customer_bot(doc, method):
 	"""called when the customer is deleted"""
 
-	bot_id = _get_bot_id(doc)
+	bot_id = doc.custom_raven_bot
 
 	if frappe.db.exists("Raven Bot", {"name": bot_id}):
 		frappe.log(f"Removing Raven Bot `{bot_id}` for deleted Customer `{doc.name}`")
