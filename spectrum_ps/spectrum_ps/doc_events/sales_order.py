@@ -59,6 +59,15 @@ def create_raven_channel(doc: "Sales Order", method=None):
 			members=[ADMIN_USER],
 		)
 
+	# admins = frappe.conf.get("spectrum_ps_raven_admins") or [doc.owner]
+	# members = [u for u in admins if frappe.db.exists("Raven User", u)]
+	# if members:
+	# 	frappe.call(
+	# 		"raven.api.raven_channel_member.add_channel_members",
+	# 		channel_id=raven_channel.name,
+	# 		members=members,
+	# 	)
+
 	if not doc.customer:
 		frappe.log(f"Sales Order `{doc.name}` has no Customer linked")
 		frappe.throw(
@@ -89,14 +98,7 @@ def create_raven_channel(doc: "Sales Order", method=None):
 	bot_add_to_channel(bot_user, raven_channel.name)
 	frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
 
-	admins = frappe.conf.get("spectrum_ps_raven_admins") or [doc.owner]
-	members = [u for u in admins if frappe.db.exists("Raven User", u)]
-	if members:
-		frappe.call(
-			"raven.api.raven_channel_member.add_channel_members",
-			channel_id=raven_channel.name,
-			members=members,
-		)
+	# TODO: Add Realtor's bot
 
 
 def remove_raven_channel(doc: "Sales Order", method=None):
