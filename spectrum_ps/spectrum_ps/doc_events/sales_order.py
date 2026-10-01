@@ -51,11 +51,13 @@ def create_raven_channel(doc: "Sales Order", method=None):
 
 	# Add administrator to the channel
 	# TODO: Add from a preset list or using some heuristic
-	frappe.call(
-		"raven.api.raven_channel_member.add_channel_members",
-		channel_id=raven_channel.name,
-		members=["Administrator"],
-	)
+	ADMIN_USER = "Administrator"
+	if not frappe.db.exists("Raven Channel Member", {"user_id": ADMIN_USER}):
+		frappe.call(
+			"raven.api.raven_channel_member.add_channel_members",
+			channel_id=raven_channel.name,
+			members=[ADMIN_USER],
+		)
 
 	if not doc.customer:
 		frappe.log(f"Sales Order `{doc.name}` has no Customer linked")
