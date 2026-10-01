@@ -319,10 +319,6 @@ def login_website_user(
 	frappe.local.response["type"] = "redirect"
 	frappe.local.response["location"] = "/website-redirect"
 
-	# Fallback to the channel ID defined in your config (e.g., tkt-001 channel)
-	default_channel = require_setting("raven_channel_id")
-	return default_channel, None
-
 
 @frappe.whitelist(allow_guest=True)
 def whatsapp_webhook(*args, **kwargs):
