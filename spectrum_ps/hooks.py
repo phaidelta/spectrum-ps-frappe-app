@@ -200,25 +200,6 @@ fixtures = [
 # Scheduled Tasks
 # ---------------
 
-fixtures = [
-	{
-		"dt": "Custom Field",
-		"filters": [
-			[
-				"dt",
-				"in",
-				[
-					"Customer",
-					"Item",
-					"Address",
-					"Sales Order",
-					"Sales Order Item",
-				],
-			]
-		],
-	}
-]
-
 # scheduler_events = {
 # 	"all": [
 # 		"spectrum_ps.tasks.all"
