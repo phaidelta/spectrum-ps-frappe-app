@@ -34,7 +34,7 @@ def get_active_sales_order_for_customer(customer_name: str):
         "Sales Order",
         filters={
             "customer": customer_name,
-            "custom_ticket_status": "In Progress",
+            # "custom_ticket_status": "In Progress",
             "docstatus": ["<", 2],
         },
         fields=["name", "customer", "custom_ticket_status", "custom_raven_channel"],
@@ -60,7 +60,7 @@ def get_sales_order_by_raven_channel(channel_id: str):
         "Sales Order",
         filters={
             "custom_raven_channel": channel_id,
-            "custom_ticket_status": "In Progress",
+            # "custom_ticket_status": "In Progress",
             "docstatus": ["<", 2],
         },
         fields=["name", "customer", "custom_ticket_status", "custom_raven_channel"],

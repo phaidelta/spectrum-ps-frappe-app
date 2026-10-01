@@ -1,8 +1,10 @@
 import frappe
 from frappe import _
 
+from spectrum_ps.spectrum_ps.utils import as_user
 
-def add_assigned_user(doc: "ToDo", method=None):
+
+def add_assigned_user(doc, method=None):
 	if doc.reference_type != "Sales Order" or not doc.allocated_to:
 		return
 
@@ -36,13 +38,17 @@ def add_assigned_user(doc: "ToDo", method=None):
 	if sales_order.custom_ticket_status in ["New", "Reopened"]:
 		frappe.log(f"Updating Sales Order `{sales_order.name}` ticket status to Assigned")
 		sales_order.custom_ticket_status = "Assigned"
-		sales_order.save(ignore_permissions=True)
+		# TODO: Get the system manager user from config. This defaults to Administrator
+		with as_user():
+			sales_order.save(ignore_permissions=True)
 
-	frappe.call(
-		"raven.api.raven_channel_member.add_channel_members",
-		channel_id=sales_order.custom_raven_channel,
-		members=[assigned_to],
-	)
+	# TODO: Get the system manager user from config. This defaults to Administrator
+	with as_user():
+		frappe.call(
+			"raven.api.raven_channel_member.add_channel_members",
+			channel_id=sales_order.custom_raven_channel,
+			members=[assigned_to],
+		)
 	frappe.log(f"Added Raven User `{user.name}` to Channel `{sales_order.custom_raven_channel}`")
 
 
@@ -67,12 +73,14 @@ def remove_assigned_user(doc, method=None):
 		frappe.log(f"Sales Order `{sales_order.name}` has no Raven Channel linked; nothing to remove")
 		return
 
-	frappe.call(
-		"raven.api.raven_channel_member.remove_channel_member",
-		user_id=assigned_to,
-		channel_id=sales_order.custom_raven_channel,
-	)
-	frappe.log(f"Removed Raven User `{user.name}` from Channel `{sales_order.custom_raven_channel}`")
+	# TODO: Get the system manager user from config. This defaults to Administrator
+	with as_user():
+		frappe.call(
+			"raven.api.raven_channel_member.remove_channel_member",
+			user_id=assigned_to,
+			channel_id=sales_order.custom_raven_channel,
+		)
+		frappe.log(f"Removed Raven User `{user.name}` from Channel `{sales_order.custom_raven_channel}`")
 
 
 def remove_assigned_user_on_cancel(doc, method=None):
