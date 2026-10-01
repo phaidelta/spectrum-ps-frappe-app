@@ -1,6 +1,8 @@
 import frappe
 from frappe import _
 
+from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
+
 
 def bot_add_to_channel(bot, channel_id: str) -> str:
 	"""
@@ -23,7 +25,29 @@ def bot_add_to_channel(bot, channel_id: str) -> str:
 		return existing_member
 
 
-def create_raven_channel(doc: "Sales Order", method=None):
+def ensure_customer_has_bot(customer):
+	if not customer.custom_raven_bot:
+		frappe.log(f"Customer `{customer.name}` has no linked Raven Bot. Creating...")
+		create_customer_bot(customer, None)
+		# frappe.throw(
+		# 	_("Customer {0} must have a Raven Bot before creating a Sales Order.").format(customer.name)
+		# )
+
+	elif not frappe.db.exists("Raven Bot", customer.custom_raven_bot):
+		frappe.log(
+			f"Linked Raven Bot `{customer.custom_raven_bot}` does not exist for Customer `{customer.name}`. Creating..."
+		)
+		create_customer_bot(customer, None)
+		# frappe.throw(
+		# 	_("Raven Bot {0} linked to Customer {1} does not exist.").format(
+		# 		customer.custom_raven_bot, customer.name
+		# 	)
+		# )
+
+	return customer.custom_raven_bot
+
+
+def create_raven_channel(doc, method=None):
 	frappe.log(f"Creating or updating Raven channel for Sales Order `{doc.name}`")
 	workspace = "Customer communications"
 	channel_name = doc.name
@@ -55,6 +79,7 @@ def create_raven_channel(doc: "Sales Order", method=None):
 	# TODO: Add from a preset list or using some heuristic
 	ADMIN_USER = "Administrator"
 	if not frappe.db.exists("Raven Channel Member", {"channel_id": raven_channel.name, "user_id": ADMIN_USER}):
+		frappe.log(f"Adding user `{ADMIN_USER}` for Sales Order `{doc.name}` to raven channel `{raven_channel.name}`")
 		frappe.call(
 			"raven.api.raven_channel_member.add_channel_members",
 			channel_id=raven_channel.name,
@@ -78,32 +103,20 @@ def create_raven_channel(doc: "Sales Order", method=None):
 
 	frappe.log(f"Looking up Customer `{doc.customer}` for Sales Order `{doc.name}`")
 	customer = frappe.get_cached_doc("Customer", doc.customer)
-	if not customer.custom_raven_bot:
-		frappe.log(f"Customer `{customer.name}` has no linked Raven Bot")
-		frappe.throw(
-			_("Customer {0} must have a Raven Bot before creating a Sales Order.").format(customer.name)
-		)
 
-	if not frappe.db.exists("Raven Bot", customer.custom_raven_bot):
-		frappe.log(
-			f"Linked Raven Bot `{customer.custom_raven_bot}` does not exist for Customer `{customer.name}`"
-		)
-		frappe.throw(
-			_("Raven Bot {0} linked to Customer {1} does not exist.").format(
-				customer.custom_raven_bot, customer.name
-			)
-		)
+	# Get Raven Bot associated with the customer
+	bot = ensure_customer_has_bot(customer)
 
-	frappe.log(f"Adding Raven Bot `{customer.custom_raven_bot}` to Channel `{raven_channel.name}`")
-	bot_user = frappe.get_cached_doc("Raven Bot", customer.custom_raven_bot)
-
+	frappe.log(f"Adding Raven Bot `{bot}` to Channel `{raven_channel.name}`")
+	bot_user = frappe.get_cached_doc("Raven Bot", bot)
 	bot_add_to_channel(bot_user, raven_channel.name)
+
 	frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
 
 	# TODO: Add Realtor's bot
 
 
-def remove_raven_channel(doc: "Sales Order", method=None):
+def remove_raven_channel(doc, method=None):
 	channel_name = getattr(doc, "custom_raven_channel", None)
 	if not channel_name:
 		frappe.log(f"Sales Order `{doc.name}` has no Raven Channel to remove")
