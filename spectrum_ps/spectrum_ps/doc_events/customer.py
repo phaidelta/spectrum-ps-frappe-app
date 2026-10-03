@@ -21,6 +21,13 @@ def create_customer_bot(doc, method):
 		else:
 			frappe.log(f"Customer `{doc.name}` is already linked to Raven Bot `{bot_id}`")
 	else:
+		print("Creating bot for customer:", doc.name)
+		print("This user is:", frappe.session.user)
+		print("Cookie SID:", frappe.get_cookie("sid"))
+		print("Cookie username:", frappe.get_cookie("full_name"))
+		print("Login as:", frappe.local.login_manager.login_as)
+		print("Existing customer?", frappe.db.exists("Customer", doc.name))
+
 		if frappe.db.exists("Customer", doc.name):
 			frappe.log(f"Creating Raven Bot `{bot_id}` for Customer `{doc.name}`")
 			raven_bot = frappe.new_doc("Raven Bot")
