@@ -11,6 +11,7 @@ def create_customer_bot(doc, method):
 
 	bot_id = _get_bot_id(doc)
 	frappe.log(f"Ensuring Raven Bot `{bot_id}` exists for Customer `{doc.name}`")
+	doc.flags.ignore_permissions = True
 
 	if frappe.db.exists("Raven Bot", {"name": bot_id}):
 		if doc.custom_raven_bot != bot_id:
@@ -23,8 +24,7 @@ def create_customer_bot(doc, method):
 	else:
 		print("Creating bot for customer:", doc.name)
 		print("This user is:", frappe.session.user)
-		print("Cookie SID:", frappe.get_cookie("sid"))
-		print("Cookie username:", frappe.get_cookie("full_name"))
+		print("Cookies:", frappe.local.request.cookies)
 		print("Login as:", frappe.local.login_manager.login_as)
 		print("Existing customer?", frappe.db.exists("Customer", doc.name))
 
@@ -32,6 +32,7 @@ def create_customer_bot(doc, method):
 			frappe.log(f"Creating Raven Bot `{bot_id}` for Customer `{doc.name}`")
 			raven_bot = frappe.new_doc("Raven Bot")
 			raven_bot.bot_name = bot_id
+			raven_bot.flags.ignore_permissions = True
 			raven_bot.insert(ignore_permissions=True)
 			doc.custom_raven_bot = bot_id
 			doc.save(ignore_permissions=True)
