@@ -29,7 +29,8 @@
    "fieldname": "proficiency",
    "fieldtype": "Select",
    "label": "proficiency",
-   "options": "Beginner\\nIntermediate\\nAdvanced\\nExpert"
+   "options": "Beginner\nIntermediate\nAdvanced\nExpert",
+   "default": "Intermediate"
   },
   {
    "fieldname": "experience",
