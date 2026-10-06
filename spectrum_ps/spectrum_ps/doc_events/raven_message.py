@@ -6,6 +6,8 @@ import frappe
 from spectrum_ps.integrations.twilio import send_whatsapp_message
 from spectrum_ps.messaging import get_sales_order_by_raven_channel
 
+logger = frappe.logger("api", allow_site=True, file_count=50)
+
 _TAG_RE = re.compile(r"<[^>]*>")
 
 
@@ -60,6 +62,8 @@ def deliver_to_whatsapp(message_id, sales_order, customer, body):
 			message=f"Customer: {customer}\nSales Order: {sales_order}",
 		)
 		return
+
+	logger.info(f"Sending WhatsApp message to customer {customer} with mobile no. {mobile}")
 
 	try:
 		sid = send_whatsapp_message(to=mobile, body=body)

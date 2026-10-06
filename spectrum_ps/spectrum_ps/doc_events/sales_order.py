@@ -4,6 +4,9 @@ from frappe import _
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.spectrum_ps.utils import as_user
 
+CUSTOMER_WELCOME_MESSAGE = """Hello {customer}! Thanks for contacting us.
+We have received your order, and will respond shortly."""
+
 
 def bot_add_to_channel(bot, channel_id: str) -> str:
 	"""
@@ -128,6 +131,20 @@ def create_raven_channel(doc, method=None):
 	frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
 
 	# TODO: Add Realtor's bot
+
+	# Send WhatsApp message to the customer for onboarding
+	frappe.log("Sending welcome message to customer...")
+	frappe.enqueue(
+		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_to_whatsapp",
+		queue="short",
+		enqueue_after_commit=True,
+		message_id=f"{doc.name}-welcome-message",
+		sales_order=doc.name,
+		customer=doc.customer,
+		body=CUSTOMER_WELCOME_MESSAGE.format(
+			customer=customer.customer_name,
+		),
+	)
 
 
 def remove_raven_channel(doc, method=None):
