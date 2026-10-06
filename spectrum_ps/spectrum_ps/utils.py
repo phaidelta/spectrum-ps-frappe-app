@@ -34,13 +34,14 @@ def as_user(user: str | None = DEFAULT_ELEVATED_SER):
 	```
 	"""
 
+	# Keep a snapshot of the original session user
 	original_user = frappe.session.user
 
 	try:
-		# Switch user temporarily for permission checks
-		frappe.set_user(user)
+		# Switch user temporarily for permission checks. It only uses the user name
+		frappe.session.user = user
 
 		yield
 	finally:
-		# Revert back to the original user
-		frappe.set_user(original_user)
+		# Restore original user
+		frappe.session.user = original_user
