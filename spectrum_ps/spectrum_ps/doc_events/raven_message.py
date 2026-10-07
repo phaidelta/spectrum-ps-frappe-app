@@ -31,6 +31,24 @@ def send_outbound_whatsapp(doc, method=None):
 	if not doc.channel_id or not body:
 		return
 
+	# Get the sender name from the Raven Message document.
+	sender = (
+		doc.get("sender")
+		or doc.get("sender_id")
+		or doc.get("user_id")
+		or doc.get("owner")
+	)
+
+	sender_label = "Admin"
+
+	if sender:
+		full_name = frappe.db.get_value("User", sender, "full_name")
+
+		if sender == "Administrator":
+			sender_label = "Admin"
+		elif full_name:
+			sender_label = full_name
+
 	sales_order = get_sales_order_by_raven_channel(doc.channel_id)
 	if not sales_order:
 		return  # not a Sales Order channel, ignore
@@ -45,17 +63,23 @@ def send_outbound_whatsapp(doc, method=None):
 		sales_order=sales_order.name,
 		customer=sales_order.customer,
 		body=body,
+		sender_label=sender_label,
 	)
 
 
-def deliver_to_whatsapp(message_id, sales_order, customer, body):
+def deliver_to_whatsapp(
+	message_id, sales_order, customer, body, sender_label="Admin"
+):
 	"""Background job: send the message through Twilio."""
 
 	key = f"spectrum_ps:raven_out:{message_id}"
 	if frappe.cache.get_value(key):
 		return  # already delivered
 
-	mobile = (frappe.db.get_value("Customer", customer, "mobile_no") or "").strip()
+	mobile = (
+		frappe.db.get_value("Customer", customer, "mobile_no") or ""
+	).strip()
+
 	if not mobile:
 		frappe.log_error(
 			title="Raven → WhatsApp: customer has no mobile_no",
@@ -63,12 +87,24 @@ def deliver_to_whatsapp(message_id, sales_order, customer, body):
 		)
 		return
 
-	logger.info(f"Sending WhatsApp message to customer {customer} with mobile no. {mobile}")
+	logger.info(
+		f"Sending WhatsApp message to customer {customer} "
+		f"with mobile no. {mobile}"
+	)
+
+	# Bold sender name on the first line, message on the second line.
+	formatted_body = f"*{sender_label}*:\n{body}"
 
 	try:
-		sid = send_whatsapp_message(to=mobile, body=body)
+		sid = send_whatsapp_message(
+			to=mobile,
+			body=formatted_body,
+		)
 	except Exception:
-		frappe.log_error(title="Raven → WhatsApp failed", message=frappe.get_traceback())
+		frappe.log_error(
+			title="Raven → WhatsApp failed",
+			message=frappe.get_traceback(),
+		)
 		return
 
 	frappe.cache.set_value(key, sid, expires_in_sec=86400)
