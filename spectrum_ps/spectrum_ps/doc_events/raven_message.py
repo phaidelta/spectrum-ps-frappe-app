@@ -51,7 +51,12 @@ def send_outbound_whatsapp(doc, method=None):
 	)
 
 
-def deliver_to_whatsapp(message_id, sales_order, customer, body):
+def deliver_to_whatsapp(
+	message_id,
+	sales_order,
+	customer,
+	body,
+):
 	"""Background job: send the message through Twilio."""
 
 	key = f"spectrum_ps:raven_out:{message_id}"
@@ -59,6 +64,7 @@ def deliver_to_whatsapp(message_id, sales_order, customer, body):
 		return  # already delivered
 
 	mobile = (frappe.db.get_value("Customer", customer, "mobile_no") or "").strip()
+
 	if not mobile:
 		frappe.log_error(
 			title="Raven → WhatsApp: customer has no mobile_no",
@@ -69,9 +75,15 @@ def deliver_to_whatsapp(message_id, sales_order, customer, body):
 	logger.info(f"Sending WhatsApp message to customer {customer} with mobile no. {mobile}")
 
 	try:
-		sid = send_whatsapp_message(to=mobile, body=body)
+		sid = send_whatsapp_message(
+			to=mobile,
+			body=body,
+		)
 	except Exception:
-		frappe.log_error(title="Raven → WhatsApp failed", message=frappe.get_traceback())
+		frappe.log_error(
+			title="Raven → WhatsApp failed",
+			message=frappe.get_traceback(),
+		)
 		return
 
 	frappe.cache.set_value(key, sid, expires_in_sec=86400)
