@@ -336,7 +336,7 @@ def whatsapp_webhook(*args, **kwargs):
 	# 	frappe.throw(_("Invalid Twilio signature"), frappe.PermissionError)
 
 	sender = (form.get("From") or "").strip()
-	profile_name = (form.get("ProfileName") or sender).strip()
+	# profile_name = (form.get("ProfileName") or sender).strip()
 	body = (form.get("Body") or "").strip()
 	message_sid = form.get("MessageSid")
 

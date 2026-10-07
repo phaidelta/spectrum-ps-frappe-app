@@ -1,6 +1,7 @@
 import frappe
 from twilio.request_validator import RequestValidator
 from twilio.rest import Client
+
 from .config import require_setting
 
 
@@ -32,7 +33,9 @@ def validate_webhook_signature(url: str, form_data: dict) -> bool:
 	forwarded_host = frappe.get_request_header("X-Forwarded-Host") or frappe.get_request_header("Host")
 
 	if forwarded_host:
-		request_path = frappe.request.path if frappe.request else "/api/method/spectrum_ps.api.whatsapp_webhook"
+		request_path = (
+			frappe.request.path if frappe.request else "/api/method/spectrum_ps.api.whatsapp_webhook"
+		)
 		url = f"{forwarded_proto}://{forwarded_host}{request_path}"
 
 	# Exclude internal Frappe query keys like 'cmd'
@@ -42,7 +45,7 @@ def validate_webhook_signature(url: str, form_data: dict) -> bool:
 	return validator.validate(url, wrapped_params, signature)
 
 
-def send_whatsapp_message(to: str = None, body: str = "", to_number: str = None) -> str:
+def send_whatsapp_message(to: str | None = None, body: str = "", to_number: str | None = None) -> str:
 	"""Send an outbound WhatsApp message via Twilio REST API.
 
 	Accepts either 'to' or 'to_number' to maintain backward compatibility across handlers.
@@ -64,10 +67,6 @@ def send_whatsapp_message(to: str = None, body: str = "", to_number: str = None)
 		recipient = f"whatsapp:{recipient}"
 
 	client = Client(account_sid, auth_token)
-	message = client.messages.create(
-		from_=from_number,
-		body=body,
-		to=recipient
-	)
+	message = client.messages.create(from_=from_number, body=body, to=recipient)
 
 	return message.sid
