@@ -400,7 +400,10 @@ def whatsapp_webhook(*args, **kwargs):
 			content_type="application/xml",
 		)
 	except NonExistentCustomerError as ex:
-		logger.info("Got a non-existent customer message from `%s`, message: `%s`\nlog message: %s" % (sender, body, str(ex)))
+		logger.info(
+			"Got a non-existent customer message from `%s`, message: `%s`\nlog message: %s"
+			% (sender, body, str(ex))
+		)
 		# TODO: Handle this by sending notification to Admin
 
 		return Response(
