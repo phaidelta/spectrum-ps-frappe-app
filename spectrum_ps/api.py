@@ -322,6 +322,21 @@ def login_website_user(
 	frappe.local.response["location"] = "/website-redirect"
 
 
+# TODO: Fix Security Vulnerability Broken Access Control - IDOR - for authenticated users
+@frappe.whitelist(allow_guest=True)
+def active_orders_count(customer_id: str | None):
+	"""Gets the count of active Sales Orders for the given customer"""
+
+	return frappe.db.count(
+		"Sales Order",
+		filters={
+			"customer": customer_id,
+			"docstatus": ["<", 2],
+			"custom_ticket_status": ["not in", ["Completed", "Cancelled"]],
+		},
+	)
+
+
 @frappe.whitelist(allow_guest=True)
 def whatsapp_webhook(*args, **kwargs):
 	"""Receive Twilio WhatsApp messages and route them to the customer's Raven channel."""
