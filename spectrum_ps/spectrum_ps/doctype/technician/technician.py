@@ -6,4 +6,6 @@ from frappe.model.document import Document
 
 
 class Technician(Document):
-	pass
+
+	def autoname(self):
+		self.name = self.user

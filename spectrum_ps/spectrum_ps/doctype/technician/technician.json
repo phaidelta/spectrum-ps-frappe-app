@@ -2,14 +2,16 @@
  "actions": [],
  "allow_bulk_edit": 1,
  "allow_rename": 1,
- "autoname": "field:technician_name",
+ "autoname": "",
+ "naming_rule": "By script",
  "creation": "2026-09-22 15:17:55.340993",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
+ "title_field": "technician_name",
  "field_order": [
-  "technician_name",
   "user",
+  "technician_name",
   "technician_type",
   "description",
   "availability",
@@ -21,18 +23,23 @@
  ],
  "fields": [
   {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "reqd": 1,
+   "options": "User",
+   "unique": 1
+  },
+  {
    "fieldname": "technician_name",
+   "fetch_from": "user.full_name",
+   "fetch_if_empty": 1,
    "fieldtype": "Data",
+   "in_filter": 1,
    "in_list_view": 1,
    "label": "Technician Name",
    "reqd": 1,
    "unique": 1
-  },
-  {
-   "fieldname": "user",
-   "fieldtype": "Link",
-   "label": "User",
-   "options": "User"
   },
   {
    "fieldname": "technician_type",
