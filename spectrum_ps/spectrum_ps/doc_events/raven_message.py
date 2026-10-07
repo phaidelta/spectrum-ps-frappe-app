@@ -6,7 +6,7 @@ import frappe
 from spectrum_ps.integrations.twilio import send_whatsapp_message
 from spectrum_ps.messaging import get_sales_order_by_raven_channel
 
-logger = frappe.logger("api", allow_site=True, file_count=50)
+logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
 
 _TAG_RE = re.compile(r"<[^>]*>")
 
@@ -30,6 +30,9 @@ def send_outbound_whatsapp(doc, method=None):
 	body = _clean(doc.get("text"))
 	if not doc.channel_id or not body:
 		return
+
+	sender_name = frappe.get_doc("User", doc.owner)
+	body = "*{sender}*:\n{body}".format(sender=sender_name.first_name.strip(), body=body)
 
 	sales_order = get_sales_order_by_raven_channel(doc.channel_id)
 	if not sales_order:

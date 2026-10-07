@@ -17,6 +17,7 @@ from frappe.utils.oauth import (
 )
 from frappe.utils.response import Response
 
+from .exceptions import NoActiveSalesOrdersException, NonExistentCustomerError
 from .integrations.config import require_setting
 from .integrations.raven import RavenClient
 from .integrations.twilio import validate_webhook_signature
@@ -28,14 +29,19 @@ if TYPE_CHECKING:
 
 ALLOWED_PROVIDERS = frozenset({"google", "facebook"})
 
+logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
+
 
 def get_raven_channel_and_sales_order(sender_phone: str):
 	"""Resolve WhatsApp sender -> Customer -> active Sales Order -> Raven Channel."""
 	customer = get_customer_by_whatsapp(sender_phone)
-	so = get_active_sales_order_for_customer(customer.name)
+
+	so = get_active_sales_order_for_customer(customer)
+
 	if not so:
+		raise NoActiveSalesOrdersException()
 		# TODO: This should be sent as a message to Twilio, same user, as a reply
-		frappe.throw(_("Customer {0} has no active In Progress Sales Order.").format(customer.name))
+		# frappe.throw(_("Customer {0} has no active In Progress Sales Order.").format(customer.name))
 
 	channel_id = so.custom_raven_channel
 	if not channel_id:
@@ -83,7 +89,7 @@ def get_social_login_urls() -> dict[str, str]:
 			)
 		except ValidationError as error:
 			if _is_missing_client_secret(error, provider):
-				frappe.logger().warning(
+				logger.warning(
 					"Skipping social login provider '%s': client secret is not configured",
 					provider,
 				)
@@ -122,7 +128,7 @@ def _notify_admin(doc, email_group: str):
 	recipients = _get_mail_group_recipients(email_group)
 
 	if not recipients:
-		frappe.logger().warning(f"There are no recipients present in the Email group `{email_group}`.")
+		logger.warning(f"There are no recipients present in the Email group `{email_group}`.")
 		return
 
 	try:
@@ -364,31 +370,48 @@ def whatsapp_webhook(*args, **kwargs):
 			content_type="application/xml",
 		)
 
-	channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)
-	raven_text = f"{body}"
-
-	frappe.flags.in_whatsapp_webhook = True
 	try:
-		bot = frappe.get_doc("Raven Bot", customer.custom_raven_bot)
-		raven_response = bot.send_message(channel_id=channel_id, text=raven_text)
-	finally:
-		frappe.flags.in_whatsapp_webhook = False
+		channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)
+		raven_text = f"{body}"
 
-	publish_message(
-		"spectrum_ps_whatsapp_message",
-		direction="whatsapp_to_raven",
-		message={
-			"message_sid": message_sid,
-			"from": sender,
-			"customer": customer.name,
-			"sales_order": so_name,
-			"body": body,
-			"channel_id": channel_id,
-			"raven": raven_response,
-		},
-	)
+		frappe.flags.in_whatsapp_webhook = True
+		try:
+			bot = frappe.get_doc("Raven Bot", customer.custom_raven_bot)
+			raven_response = bot.send_message(channel_id=channel_id, text=raven_text)
+		finally:
+			frappe.flags.in_whatsapp_webhook = False
 
-	return Response(
-		'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
-		content_type="application/xml",
-	)
+		publish_message(
+			"spectrum_ps_whatsapp_message",
+			direction="whatsapp_to_raven",
+			message={
+				"message_sid": message_sid,
+				"from": sender,
+				"customer": customer.name,
+				"sales_order": so_name,
+				"body": body,
+				"channel_id": channel_id,
+				"raven": raven_response,
+			},
+		)
+
+		return Response(
+			'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+			content_type="application/xml",
+		)
+	except NonExistentCustomerError as ex:
+		logger.info("Got a non-existent customer message from `%s`, message: `%s`\nlog message: %s" % (sender, body, str(ex)))
+		# TODO: Handle this by sending notification to Admin
+
+		return Response(
+			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>Hi! Welcome to Spectrum PS.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order.</Message></Response>',
+			content_type="application/xml",
+		)
+
+	except NoActiveSalesOrdersException:
+		logger.info("Phone number `%s` messaged us with no active Sales Order" % sender)
+
+		return Response(
+			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>Hi! You don\'t seem to have any active orders.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order.</Message></Response>',
+			content_type="application/xml",
+		)
