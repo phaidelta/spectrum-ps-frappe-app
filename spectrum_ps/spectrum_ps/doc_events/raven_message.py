@@ -6,7 +6,7 @@ import frappe
 from spectrum_ps.integrations.twilio import send_whatsapp_message
 from spectrum_ps.messaging import get_sales_order_by_raven_channel
 
-logger = frappe.logger("api", allow_site=True, file_count=50)
+logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
 
 _TAG_RE = re.compile(r"<[^>]*>")
 
@@ -31,23 +31,8 @@ def send_outbound_whatsapp(doc, method=None):
 	if not doc.channel_id or not body:
 		return
 
-	# Get the sender name from the Raven Message document.
-	sender = (
-		doc.get("sender")
-		or doc.get("sender_id")
-		or doc.get("user_id")
-		or doc.get("owner")
-	)
-
-	sender_label = "Admin"
-
-	if sender:
-		full_name = frappe.db.get_value("User", sender, "full_name")
-
-		if sender == "Administrator":
-			sender_label = "Admin"
-		elif full_name:
-			sender_label = full_name
+	sender_name = frappe.get_doc("User", doc.owner)
+	body = "*{sender}*:\n{body}".format(sender=sender_name.first_name.strip(), body=body)
 
 	sales_order = get_sales_order_by_raven_channel(doc.channel_id)
 	if not sales_order:
@@ -63,12 +48,14 @@ def send_outbound_whatsapp(doc, method=None):
 		sales_order=sales_order.name,
 		customer=sales_order.customer,
 		body=body,
-		sender_label=sender_label,
 	)
 
 
 def deliver_to_whatsapp(
-	message_id, sales_order, customer, body, sender_label="Admin"
+	message_id,
+	sales_order,
+	customer,
+	body,
 ):
 	"""Background job: send the message through Twilio."""
 
@@ -76,9 +63,7 @@ def deliver_to_whatsapp(
 	if frappe.cache.get_value(key):
 		return  # already delivered
 
-	mobile = (
-		frappe.db.get_value("Customer", customer, "mobile_no") or ""
-	).strip()
+	mobile = (frappe.db.get_value("Customer", customer, "mobile_no") or "").strip()
 
 	if not mobile:
 		frappe.log_error(
@@ -87,18 +72,12 @@ def deliver_to_whatsapp(
 		)
 		return
 
-	logger.info(
-		f"Sending WhatsApp message to customer {customer} "
-		f"with mobile no. {mobile}"
-	)
-
-	# Bold sender name on the first line, message on the second line.
-	formatted_body = f"*{sender_label}*:\n{body}"
+	logger.info(f"Sending WhatsApp message to customer {customer} with mobile no. {mobile}")
 
 	try:
 		sid = send_whatsapp_message(
 			to=mobile,
-			body=formatted_body,
+			body=body,
 		)
 	except Exception:
 		frappe.log_error(
