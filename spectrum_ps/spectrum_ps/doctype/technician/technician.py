@@ -7,6 +7,7 @@ import frappe
 from frappe.model.document import Document
 
 TECHNICIAN_ROLE = "Technician"
+RAVEN_USER = "Raven User"
 
 
 class Technician(Document):
@@ -22,6 +23,7 @@ class Technician(Document):
 		user = frappe.get_doc("User", self.user)
 		user.flags.ignore_permissions = True
 		user.add_roles(TECHNICIAN_ROLE)
+		user.add_roles(RAVEN_USER)
 
 	def after_delete(self):
 		if not frappe.db.exists("User", self.user):
@@ -29,3 +31,4 @@ class Technician(Document):
 		user = frappe.get_doc("User", self.user)
 		user.flags.ignore_permission = True
 		user.remove_roles(TECHNICIAN_ROLE)
+		user.add_roles(RAVEN_USER)
