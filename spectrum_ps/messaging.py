@@ -5,8 +5,7 @@ from spectrum_ps.spectrum_ps.utils import as_user
 from spectrum_ps.utils import get_doc_or_none
 
 from .exceptions import NonExistentCustomerError
-
-excluded_statuses = ["Cancelled", "Completed"]
+from .integrations.config import excluded_statuses
 
 logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
 
@@ -72,6 +71,10 @@ def get_active_sales_order_for_customer(customer):
 	)
 
 	if not orders:
+		if customer.custom_active_sales_order:
+			customer.custom_active_sales_order = None
+			with as_user():
+				customer.save(ignore_permissions=True)
 		return
 
 	if len(orders) > 1:
