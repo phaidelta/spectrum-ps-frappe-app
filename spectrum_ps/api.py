@@ -383,6 +383,7 @@ def whatsapp_webhook(*args, **kwargs):
 		inbound_msg_doc = frappe.new_doc("Customer Message Inbound Queue")
 		inbound_msg_doc.mobile_no = sender
 		inbound_msg_doc.message_sid = message_sid
+		inbound_msg_doc.payload = dict(form)
 
 		try:
 			channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)

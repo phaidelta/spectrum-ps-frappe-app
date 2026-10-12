@@ -55,7 +55,8 @@ def deliver_to_whatsapp(
 	message_id,
 	sales_order,
 	customer,
-	body,
+	body: str | None = None,
+	template: dict | None = None,
 ):
 	"""Background job: send the message through Twilio."""
 
@@ -78,6 +79,7 @@ def deliver_to_whatsapp(
 		sid = send_whatsapp_message(
 			to=mobile,
 			body=body,
+			template=template,
 		)
 	except Exception:
 		frappe.log_error(
