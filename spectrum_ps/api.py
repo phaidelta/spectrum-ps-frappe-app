@@ -22,7 +22,6 @@ from .integrations.config import ALLOWED_PROVIDERS, excluded_statuses, require_s
 from .integrations.raven import RavenClient
 from .integrations.twilio import validate_webhook_signature
 from .messaging import get_active_sales_order_for_customer, get_customer_by_whatsapp
-from .realtime import publish_message
 
 if TYPE_CHECKING:
 	from frappe.core.doctype.user.user import User
@@ -381,20 +380,15 @@ def whatsapp_webhook(*args, **kwargs):
 		)
 
 	try:
-		print("Doc 0:", sender)
 		inbound_msg_doc = frappe.new_doc("Customer Message Inbound Queue")
 		inbound_msg_doc.mobile_no = sender
 		inbound_msg_doc.message_sid = message_sid
-
-		print("Doc 1:", inbound_msg_doc)
 
 		try:
 			channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)
 
 			inbound_msg_doc.sender = customer.name
 			inbound_msg_doc.message = body
-
-			print("Doc 2:", inbound_msg_doc)
 
 			raven_text = body
 
@@ -406,27 +400,12 @@ def whatsapp_webhook(*args, **kwargs):
 			finally:
 				frappe.flags.in_whatsapp_webhook = False
 
-			publish_message(
-				"spectrum_ps_whatsapp_message",
-				direction="whatsapp_to_raven",
-				message={
-					"message_sid": message_sid,
-					"from": sender,
-					"customer": customer.name,
-					"sales_order": so_name,
-					"body": body,
-					"channel_id": channel_id,
-					"raven": raven_response,
-				},
-			)
-
 			return Response(
 				'<?xml version="1.0" encoding="UTF-8"?><Response />',
 				content_type="application/xml",
 			)
 		finally:
-			d = inbound_msg_doc.insert(ignore_permissions=True)
-			print("Doc:", d)
+			inbound_msg_doc.insert(ignore_permissions=True)
 			frappe.db.commit()  # TODO: Not needed for POST
 
 	except NonExistentCustomerError as ex:
