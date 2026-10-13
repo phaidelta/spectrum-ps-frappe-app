@@ -1,5 +1,4 @@
 import json
-import os
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 

@@ -105,7 +105,7 @@ def validate_webhook_signature(url: str, form_data: dict) -> bool:
 
 def send_whatsapp_message(
 	to: str | None = None, body: str | None = None, to_number: str | None = None, template: dict | None = None
-) -> str:
+) -> str | None:
 	"""Send an outbound WhatsApp message via Twilio REST API.
 
 	Accepts either 'to' or 'to_number' to maintain backward compatibility across handlers.
@@ -163,11 +163,15 @@ def send_whatsapp_template_message(
 		recipient = f"whatsapp:{recipient}"
 
 	client = Client(account_sid, auth_token)
-	message = client.messages.create(
-		from_=from_number,
-		to=recipient,
-		content_sid=content_sid,
-		content_variables=json.dumps(content_variables) if content_variables is not None else "{}",
+
+	message = send_template_message(
+		client,
+		from_number,
+		recipient,
+		{
+			"content_sid": content_sid,
+			"content_variables": content_variables,
+		}
 	)
 
 	return message.sid

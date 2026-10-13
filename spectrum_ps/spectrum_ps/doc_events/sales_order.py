@@ -2,7 +2,6 @@ import frappe
 from frappe import _
 
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
-from spectrum_ps.spectrum_ps.doc_events.raven_message import deliver_to_whatsapp
 from spectrum_ps.spectrum_ps.utils import as_user
 
 CUSTOMER_WELCOME_MESSAGE = (
@@ -147,18 +146,17 @@ def create_raven_channel(doc, method=None):
 		"company_name": "Spectrum PS",
 	}
 
-	# free_form_params = {**template_params}
-
 	frappe.log("Sending welcome message to customer...")
 	frappe.enqueue(
 		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
 		queue="short",
 		enqueue_after_commit=True,
+		# Parameters
 		message_id=f"{doc.name}-welcome-message",
 		sales_order=doc.name,
 		customer=doc.customer,
 		template_id=TEMPLATE_ORDER_GREETINGS,
-		content_variables=template_params
+		content_variables=template_params,
 	)
 
 
