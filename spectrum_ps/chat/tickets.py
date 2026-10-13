@@ -67,6 +67,7 @@ def assigned_tickets(assigned_to_me: bool = True):
 		todo = get_cached_doc_or_none("ToDo", {"reference_type": "Sales Order", "reference_name": so_doc})
 		tickets.append(_as_chat_ticket(doc, address, todo))
 
+	frappe.clear_messages()
 	return tickets
 
 
