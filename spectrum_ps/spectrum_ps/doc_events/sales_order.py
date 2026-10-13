@@ -135,15 +135,18 @@ def create_raven_channel(doc, method=None):
 	# Send WhatsApp message to the customer for onboarding
 	frappe.log("Sending welcome message to customer...")
 	frappe.enqueue(
-		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_to_whatsapp",
+		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
 		queue="short",
 		enqueue_after_commit=True,
 		message_id=f"{doc.name}-welcome-message",
 		sales_order=doc.name,
 		customer=doc.customer,
-		body=CUSTOMER_WELCOME_MESSAGE.format(
-			customer=customer.customer_name,
-		),
+		template_id = 'HXf7b41ed33a0f6bf280b8aab4b9862b5c',
+		content_variables = {
+		"customer_name": customer.customer_name,
+		"order_id": doc.name,
+		"company_name": "Spectrum PS",
+	}
 	)
 
 

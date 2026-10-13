@@ -3,7 +3,7 @@ import re
 
 import frappe
 
-from spectrum_ps.integrations.twilio import send_whatsapp_message
+from spectrum_ps.integrations.twilio import send_whatsapp_message, send_whatsapp_template_message
 from spectrum_ps.messaging import get_sales_order_by_raven_channel
 
 logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
@@ -49,6 +49,64 @@ def send_outbound_whatsapp(doc, method=None):
 		customer=sales_order.customer,
 		body=body,
 	)
+
+def deliver_template_message_to_whatsapp(
+		template_id,
+		customer,
+		content_variables,
+		sales_order,
+		message_id,
+		  **kwargs
+):
+
+	"""Background job: send an approved WhatsApp template through Twilio."""
+
+
+	if not template_id:
+		frappe.log_error(
+			title="WhatsApp template: no template id passed",
+			message=f"Customer: {customer}\nSale Order: {sales_order}",
+		)
+		return
+
+	if not customer:
+		frappe.log_error(
+			title="WhatsApp template: no customer passed",
+			message=f"Template: {template_id}\n Sales Order: {sales_order}"
+		)
+		return
+
+	#TODO need to add technician to teh key?
+	key = f"spectrum_ps:template_out:{sales_order or customer}:{template_id}:{message_id}"
+	if frappe.cache.get_value(key):
+		return # already delivered
+
+	mobile = (frappe.db.get_value("Customer", customer, "mobile_no") or "").strip()
+
+	if not mobile:
+		frappe.log_error(
+			title="WhatsApp template: customer has no mobile_no",
+			message=f"Customer: {customer}\nSales Order: {sales_order}\nTemplate:{template_id}",
+		)
+		return
+
+	logger.info(f"Sending WhatsApp template {template_id} to customer {customer} with mobile no. {mobile}")
+
+
+	try:
+		sid = send_whatsapp_template_message(
+			to=mobile,
+			content_sid=template_id,
+			content_variables=content_variables
+		)
+	except Exception:
+		frappe.log_error(
+			title=f"WhatsApp template failed: {template_id}",
+			message=frappe.get_traceback()
+		)
+		return
+
+	frappe.cache.set_value(key, sid, expires_in_sec=86400)
 
 
 def deliver_to_whatsapp(
