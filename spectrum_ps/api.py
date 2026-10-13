@@ -22,11 +22,12 @@ from spectrum_ps.customer_bot import get_raven_channel_and_sales_order, handle_i
 from .exceptions import NoActiveSalesOrdersException, NonExistentCustomerError
 from .integrations.config import ALLOWED_PROVIDERS, excluded_statuses
 from .integrations.twilio import validate_webhook_signature
+from .logger import get_logger
 
 if TYPE_CHECKING:
 	from frappe.core.doctype.user.user import User
 
-logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
+logger = get_logger()
 
 
 def _add_sent_outbound_queue(recipient = None, message: str | None = None):

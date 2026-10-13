@@ -4,10 +4,11 @@ import re
 import frappe
 
 from spectrum_ps.integrations.twilio import send_whatsapp_message, send_whatsapp_template_message
+from spectrum_ps.logger import get_logger
 from spectrum_ps.messaging import get_sales_order_by_raven_channel
 from spectrum_ps.spectrum_ps.utils import as_user
 
-logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
+logger = get_logger()
 
 _TAG_RE = re.compile(r"<[^>]*>")
 

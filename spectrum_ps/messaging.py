@@ -6,8 +6,9 @@ from spectrum_ps.utils import get_doc_or_none
 
 from .exceptions import NonExistentCustomerError
 from .integrations.config import excluded_statuses
+from .logger import get_logger
 
-logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
+logger = get_logger()
 
 
 def normalize_whatsapp_number(value: str) -> str:
