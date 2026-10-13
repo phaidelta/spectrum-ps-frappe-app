@@ -7,6 +7,9 @@ from twilio.rest import Client
 
 from .config import require_setting
 
+TWILIO_ERROR_OUTSIDE_CSW = 63016
+"""Twilio error raised when a free-form message can't be sent as we are outside the 24-hour window"""
+
 
 class FormDictWrapper(dict):
 	"""Wrapper around frappe.form_dict to provide the .getall() method expected by Twilio's RequestValidator."""
@@ -23,15 +26,15 @@ def send_template_message(client: Client, from_whatsapp: str, to_number: str, te
 	content_variables = template.get("content_variables")
 
 	# Exclude 'body' when using content_sid
-	fallback_message = client.messages.create(
+	sent_message = client.messages.create(
 		from_=from_whatsapp,
 		to=to_number,
 		content_sid=content_sid,
 		content_variables=json.dumps(content_variables) if content_variables is not None else "{}",
 	)
 
-	print(f"Template message sent successfully! SID: {fallback_message.sid}")
-	return fallback_message
+	print(f"Template message sent successfully! SID: {sent_message.sid}")
+	return sent_message
 
 
 def send_message_with_fallback(
@@ -55,7 +58,7 @@ def send_message_with_fallback(
 			print("Nothing is provided to send :/")
 	except TwilioRestException as e:
 		# Error 63016 means the 24-hour window is closed
-		if e.code == 63016:
+		if e.code == TWILIO_ERROR_OUTSIDE_CSW:
 			if template is not None:
 				print("24-hour window closed. Falling back to template message...")
 
@@ -134,10 +137,10 @@ def send_whatsapp_message(
 
 
 def send_whatsapp_template_message(
-		to:str | None = None,
-		content_sid : str = "",
-		content_variables:dict | None =None,
-		to_number : str | None = None,
+	to: str | None = None,
+	content_sid: str = "",
+	content_variables: dict | None = None,
+	to_number: str | None = None,
 ) -> str:
 	"""Send a approved WhatsApp content template via Twilio REST API."""
 	recipient = to or to_number
@@ -164,7 +167,7 @@ def send_whatsapp_template_message(
 		from_=from_number,
 		to=recipient,
 		content_sid=content_sid,
-		content_variables=json.dumps(content_variables) if content_variables is not None else "{}"
-		)
+		content_variables=json.dumps(content_variables) if content_variables is not None else "{}",
+	)
 
 	return message.sid
