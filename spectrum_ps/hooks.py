@@ -111,6 +111,8 @@ app_license = "mit"
 # before_app_uninstall = "spectrum_ps.utils.before_app_uninstall"
 # after_app_uninstall = "spectrum_ps.utils.after_app_uninstall"
 
+after_migrate = "spectrum_ps.permissions.setup_roles_and_permissions"
+
 # Build
 # ------------------
 # To hook into the build process
@@ -196,7 +198,13 @@ fixtures = [
 				],
 			]
 		],
-	}
+	},
+    {
+        "dt":"Role",
+        "filters":[
+            ["name", "in", ["Technician","Spectrum PS User"]]
+            ],
+	},
 ]
 
 
