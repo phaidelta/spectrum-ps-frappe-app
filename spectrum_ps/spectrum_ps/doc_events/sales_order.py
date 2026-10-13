@@ -10,6 +10,58 @@ CUSTOMER_WELCOME_MESSAGE = (
 
 TEMPLATE_ORDER_GREETINGS = "HXf7b41ed33a0f6bf280b8aab4b9862b5c"
 
+def _send_template(doc, template_id, message_id, content_variables):
+	frappe.enqueue(
+		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
+		queue="short",
+		enqueue_after_commit=True,
+		message_id=message_id,
+		sales_order=doc.name,
+		customer=doc.customer,
+		template_id = template_id,
+		content_variables = content_variables
+	)
+
+def _get_customer_name(doc):
+	return frappe.db.get_value("Customer", doc.customer, "customer_name") or doc.customer
+
+
+def handle_completed(doc):
+
+	frappe.log(f"Sending Completion message to customer for {doc.name}..")
+	_send_template(
+		doc,
+		template_id="HXc532e54549e0a4655f65fd379988a9f6",
+		message_id=f"{doc.name}-Sale-Order-Completion-Message",
+		content_variables={
+		"customer_name": _get_customer_name(doc),
+		"order_id": doc.name
+	}
+		)
+
+
+def handle_accepted(doc):
+	assigness = frappe.parse_json(frappe.db.get_value("Sales Order", doc.name, "_assign") or "[]")
+	if not assigness:
+		frappe.log(f"Sales Order `{doc.name}` accepted but has no assignee; skipping customer message")
+		return
+
+	technician = assigness[0]
+	technician_name = frappe.db.get_value("User", technician, "full_name") or technician
+
+	frappe.log(f"Sending Technician-assigned message to customer for {doc.name}..")
+	_send_template(
+		doc,
+		template_id="HXdf7ccb428ee2161ee3c3e804c6a0c41e",
+		message_id=f"{doc.name}-Sale-Order-Assignment-Message",
+		content_variables={
+		"customer_name": _get_customer_name(doc),
+		"technician_name":technician_name,
+		"order_id": doc.name
+	}
+
+		)
+
 
 def bot_add_to_channel(bot, channel_id: str) -> str:
 	"""
@@ -174,3 +226,23 @@ def remove_raven_channel(doc, method=None):
 	# TODO: Get the system manager user from config. This defaults to Administrator
 	with as_user():
 		frappe.get_doc("Raven Channel", channel_name).delete(ignore_permissions=True)
+
+def update_sales_order(doc, method=None):
+	"""Sales Order saved: Compare with the previous saved state and route to the right handler."""
+
+	before = doc.get_doc_before_save()
+
+	old_status = before.get("custom_ticket_status") if before else None
+
+	new_status = doc.get("custom_ticket_status")
+
+	if old_status == new_status:
+		return
+
+	if new_status == "Completed":
+		handle_completed(doc)
+	elif new_status == "Accepted":
+		handle_accepted(doc)
+
+
+
