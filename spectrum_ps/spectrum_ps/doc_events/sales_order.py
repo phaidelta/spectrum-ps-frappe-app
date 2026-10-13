@@ -150,16 +150,15 @@ def create_raven_channel(doc, method=None):
 	# free_form_params = {**template_params}
 
 	frappe.log("Sending welcome message to customer...")
-
-	deliver_to_whatsapp(
+	frappe.enqueue(
+		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
+		queue="short",
+		enqueue_after_commit=True,
 		message_id=f"{doc.name}-welcome-message",
 		sales_order=doc.name,
 		customer=doc.customer,
-		# body=CUSTOMER_WELCOME_MESSAGE.format(free_form_params),
-		template={
-			"content_sid": TEMPLATE_ORDER_GREETINGS,
-			"content_variables": template_params,
-		},
+		template_id=TEMPLATE_ORDER_GREETINGS,
+		content_variables=template_params
 	)
 
 
