@@ -333,9 +333,10 @@ def active_orders_count(customer_id: str | None):
 	)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def whatsapp_webhook(*args, **kwargs):
 	"""Receive Twilio WhatsApp messages and route them to the customer's Raven channel."""
+
 	request_url = getattr(frappe.request, "url", "") if frappe.request else ""
 	form = frappe.form_dict or {}
 
@@ -397,7 +398,6 @@ def whatsapp_webhook(*args, **kwargs):
 			)
 		finally:
 			inbound_msg_doc.insert(ignore_permissions=True)
-			frappe.db.commit()  # TODO: Not needed for POST
 
 	except NonExistentCustomerError as ex:
 		logger.info(
@@ -411,7 +411,6 @@ def whatsapp_webhook(*args, **kwargs):
 			recipient=None,
 			message=message_content,
 		)
-		frappe.db.commit()  # TODO
 
 		# TODO: Handle this by sending notification to Admin
 
@@ -430,7 +429,6 @@ def whatsapp_webhook(*args, **kwargs):
 			recipient=ex.customer.name,
 			message=message_content,
 		)
-		frappe.db.commit()  # TODO
 
 		# TODO: Properly escape the string to prevent issues
 		return Response(
