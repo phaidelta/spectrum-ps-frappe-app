@@ -16,6 +16,7 @@ from frappe.utils.oauth import (
 	update_oauth_user,
 )
 from frappe.utils.response import Response
+from spectrum_ps.utils import get_cached_doc_or_none
 
 from .exceptions import NoActiveSalesOrdersException, NonExistentCustomerError
 from .integrations.config import ALLOWED_PROVIDERS, excluded_statuses, require_setting
@@ -28,6 +29,10 @@ if TYPE_CHECKING:
 
 logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
 
+TICKET_DETAILS_MESSAGE = """Ticket details:
+Service requested: {service_type}
+Location: {location}"""
+
 
 def _add_sent_outbound_queue(recipient = None, message: str | None = None):
 	doc = frappe.get_doc(
@@ -39,6 +44,46 @@ def _add_sent_outbound_queue(recipient = None, message: str | None = None):
 		}
 	)
 	doc.insert(ignore_permissions=True)
+
+
+def get_customer_recent_so(customer):
+	try:
+		return frappe.get_last_doc("Sales Order", {"customer": customer.name})
+	except frappe.DoesNotExistError:
+		pass
+
+
+def handle_incoming_message(form_data, customer) -> str | None:
+	if (btn_action := form_data.get("ButtonPayload")) is not None:
+		match btn_action:
+			case "btn_order_greet_show_more":
+				# TODO: Handle this better. For now I'm just getting the most recent SO.
+				# What we can actually do is get which message is the reply,
+				# find it in the outbound list, and use the referenced doc of that.
+				if (latest_so := get_customer_recent_so(customer)) is not None:
+					address_doc = (
+						get_cached_doc_or_none("Address", latest_so.customer_address)
+						if latest_so.customer_address is not None
+						else None
+					)
+
+					work_type = " / ".join(item.item_name for item in latest_so.items if item.item_name)
+
+					address = (
+						", ".join(part for part in (address_doc.address_line1, address_doc.city, address_doc.state, address_doc.country) if part)
+						if address_doc is not None
+						else ""
+					)
+
+					return TICKET_DETAILS_MESSAGE.format(
+						service_type=work_type,
+						location=address,
+					)
+				else:
+					# TODO: This should not happen
+					return "Sorry! You currently don't have any active Tickets. If this is a mistake, please contact us."
+
+	return
 
 
 def get_raven_channel_and_sales_order(sender_phone: str):
@@ -391,8 +436,17 @@ def whatsapp_webhook(*args, **kwargs):
 			inbound_msg_doc.sender = customer.name
 			inbound_msg_doc.message = body
 
-			raven_text = body
+			# Directly handle the request
+			if (response := handle_incoming_message(form, customer)) is not None:
+				_add_sent_outbound_queue(recipient=customer.name, message=response)
 
+				# TODO: Properly escape the string to prevent issues
+				return Response(
+					'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % response,
+					content_type="application/xml",
+				)
+
+			raven_text = body
 			frappe.flags.in_whatsapp_webhook = True
 			try:
 				bot = frappe.get_doc("Raven Bot", customer.custom_raven_bot)
@@ -425,6 +479,7 @@ def whatsapp_webhook(*args, **kwargs):
 
 		# TODO: Handle this by sending notification to Admin
 
+		# TODO: Properly escape the string to prevent issues
 		return Response(
 			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % message_content,
 			content_type="application/xml",
@@ -436,11 +491,12 @@ def whatsapp_webhook(*args, **kwargs):
 		message_content = "Hi! You don't seem to have any active orders.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
 
 		_add_sent_outbound_queue(
-			recipient=ex.customer,
+			recipient=ex.customer.name,
 			message=message_content,
 		)
 		frappe.db.commit()  # TODO
 
+		# TODO: Properly escape the string to prevent issues
 		return Response(
 			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % message_content,
 			content_type="application/xml",

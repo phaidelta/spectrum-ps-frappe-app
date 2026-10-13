@@ -6,7 +6,7 @@ from spectrum_ps.spectrum_ps.doc_events.raven_message import deliver_to_whatsapp
 from spectrum_ps.spectrum_ps.utils import as_user
 
 CUSTOMER_WELCOME_MESSAGE = (
-	"""Hello {{customer_name}}, your ticket {{order_id}} has been received by {{company_name}}."""
+	"""Hello {customer_name}, your ticket {order_id} has been received by {company_name}."""
 )
 
 TEMPLATE_ORDER_GREETINGS = "HXf7b41ed33a0f6bf280b8aab4b9862b5c"
@@ -155,7 +155,7 @@ def create_raven_channel(doc, method=None):
 		message_id=f"{doc.name}-welcome-message",
 		sales_order=doc.name,
 		customer=doc.customer,
-		body=CUSTOMER_WELCOME_MESSAGE.format(free_form_params),
+		# body=CUSTOMER_WELCOME_MESSAGE.format(free_form_params),
 		template={
 			"content_sid": TEMPLATE_ORDER_GREETINGS,
 			"content_variables": template_params,
