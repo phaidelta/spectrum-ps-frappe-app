@@ -1,3 +1,4 @@
+import json
 import frappe
 from twilio.request_validator import RequestValidator
 from twilio.rest import Client
@@ -68,5 +69,42 @@ def send_whatsapp_message(to: str | None = None, body: str = "", to_number: str 
 
 	client = Client(account_sid, auth_token)
 	message = client.messages.create(from_=from_number, body=body, to=recipient)
+
+	return message.sid
+
+
+def send_whatsapp_template_message(
+		to:str | None = None,
+		content_sid : str = "",
+		content_variables:dict | None =None,
+		to_number : str | None = None,
+) -> str:
+	"""Send a approved WhatsApp content template via Twilio REST API."""
+	recipient = to or to_number
+
+	if not recipient:
+		raise ValueError("A valid destination phone number ('to' or 'to_number') is required.")
+	if not content_sid:
+		raise ValueError("content_sid (Twilio Content Template SID) is required.")
+
+	account_sid = require_setting("twilio_account_sid")
+	auth_token = require_setting("twilio_auth_token")
+	from_number = require_setting("twilio_whatsapp_number")  # e.g., 'whatsapp:+14155238886'
+
+	# Ensure source number starts with whatsapp:
+	if not from_number.startswith("whatsapp:"):
+		from_number = f"whatsapp:{from_number}"
+
+	# Ensure destination number starts with whatsapp:
+	if not recipient.startswith("whatsapp:"):
+		recipient = f"whatsapp:{recipient}"
+
+	client = Client(account_sid, auth_token)
+	message = client.messages.create(
+		from_=from_number,
+		to=recipient,
+		content_sid=content_sid,
+		content_variables=json.dumps(content_variables) if content_variables is not None else "{}"
+		)
 
 	return message.sid
