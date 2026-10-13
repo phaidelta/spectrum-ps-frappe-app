@@ -1,9 +1,9 @@
 import json
 
 import frappe
+from twilio.base.exceptions import TwilioRestException
 from twilio.request_validator import RequestValidator
 from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
 
 from .config import require_setting
 
@@ -17,6 +17,7 @@ class FormDictWrapper(dict):
 			return []
 		return [val] if not isinstance(val, list) else val
 
+
 def send_template_message(client: Client, from_whatsapp: str, to_number: str, template: dict):
 	content_sid = template.get("content_sid")
 	content_variables = template.get("content_variables")
@@ -26,22 +27,25 @@ def send_template_message(client: Client, from_whatsapp: str, to_number: str, te
 		from_=from_whatsapp,
 		to=to_number,
 		content_sid=content_sid,
-		content_variables=json.dumps(content_variables) if content_variables is not None else "{}"
+		content_variables=json.dumps(content_variables) if content_variables is not None else "{}",
 	)
 
 	print(f"Template message sent successfully! SID: {fallback_message.sid}")
 	return fallback_message
 
-def send_message_with_fallback(client: Client, from_whatsapp: str, to_number: str, freeform_text: str | None = None, template: dict | None = None):
+
+def send_message_with_fallback(
+	client: Client,
+	from_whatsapp: str,
+	to_number: str,
+	freeform_text: str | None = None,
+	template: dict | None = None,
+):
 	try:
 		if freeform_text is not None:
 			# 1. Attempt to send the free-form message
 			print("Attempting to send free-form message...")
-			message = client.messages.create(
-				from_=from_whatsapp,
-				to=to_number,
-				body=freeform_text
-			)
+			message = client.messages.create(from_=from_whatsapp, to=to_number, body=freeform_text)
 			print(f"Free-form message sent successfully! SID: {message.sid}")
 			return message
 		elif template is not None:
@@ -96,7 +100,9 @@ def validate_webhook_signature(url: str, form_data: dict) -> bool:
 	return validator.validate(url, wrapped_params, signature)
 
 
-def send_whatsapp_message(to: str | None = None, body: str | None = None, to_number: str | None = None, template: dict | None = None) -> str:
+def send_whatsapp_message(
+	to: str | None = None, body: str | None = None, to_number: str | None = None, template: dict | None = None
+) -> str:
 	"""Send an outbound WhatsApp message via Twilio REST API.
 
 	Accepts either 'to' or 'to_number' to maintain backward compatibility across handlers.
@@ -119,7 +125,9 @@ def send_whatsapp_message(to: str | None = None, body: str | None = None, to_num
 
 	client = Client(account_sid, auth_token)
 
-	message = send_message_with_fallback(client, from_whatsapp=from_number, to_number=recipient, freeform_text=body, template=template)
+	message = send_message_with_fallback(
+		client, from_whatsapp=from_number, to_number=recipient, freeform_text=body, template=template
+	)
 
 	if message is not None:
 		return message.sid

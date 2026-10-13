@@ -147,7 +147,7 @@ def create_raven_channel(doc, method=None):
 		"company_name": "Spectrum PS",
 	}
 
-	free_form_params = {**template_params}
+	# free_form_params = {**template_params}
 
 	frappe.log("Sending welcome message to customer...")
 
