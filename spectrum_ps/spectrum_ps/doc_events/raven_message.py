@@ -5,6 +5,7 @@ import frappe
 
 from spectrum_ps.integrations.twilio import send_whatsapp_message, send_whatsapp_template_message
 from spectrum_ps.messaging import get_sales_order_by_raven_channel
+from spectrum_ps.spectrum_ps.utils import as_user
 
 logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
 
@@ -37,6 +38,11 @@ def send_outbound_whatsapp(doc, method=None):
 	sales_order = get_sales_order_by_raven_channel(doc.channel_id)
 	if not sales_order:
 		return  # not a Sales Order channel, ignore
+
+	customer = frappe.get_doc("Customer", sales_order.customer)
+	customer.custom_active_sales_order = doc.name
+	with as_user():
+		customer.save(ignore_permissions=True)
 
 	# Send in a background job so Raven stays fast and a Twilio error
 	# can never roll back the admin's message.
