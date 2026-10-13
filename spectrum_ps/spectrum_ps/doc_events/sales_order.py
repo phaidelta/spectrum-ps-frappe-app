@@ -4,8 +4,11 @@ from frappe import _
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.spectrum_ps.utils import as_user
 
-CUSTOMER_WELCOME_MESSAGE = """Hello {customer}! Thanks for contacting us.
-We have received your order, and will respond shortly."""
+CUSTOMER_WELCOME_MESSAGE = (
+	"""Hello {customer_name}, your ticket {order_id} has been received by {company_name}."""
+)
+
+TEMPLATE_ORDER_GREETINGS = "HXf7b41ed33a0f6bf280b8aab4b9862b5c"
 
 
 def bot_add_to_channel(bot, channel_id: str) -> str:
@@ -86,8 +89,12 @@ def create_raven_channel(doc, method=None):
 	# Add administrator to the channel
 	# TODO: Add from a preset list or using some heuristic
 	ADMIN_USER = "Administrator"
-	if not frappe.db.exists("Raven Channel Member", {"channel_id": raven_channel.name, "user_id": ADMIN_USER}):
-		frappe.log(f"Adding user `{ADMIN_USER}` for Sales Order `{doc.name}` to raven channel `{raven_channel.name}`")
+	if not frappe.db.exists(
+		"Raven Channel Member", {"channel_id": raven_channel.name, "user_id": ADMIN_USER}
+	):
+		frappe.log(
+			f"Adding user `{ADMIN_USER}` for Sales Order `{doc.name}` to raven channel `{raven_channel.name}`"
+		)
 
 		# TODO: Get the system manager user from config. This defaults to Administrator
 		with as_user():
@@ -133,20 +140,23 @@ def create_raven_channel(doc, method=None):
 	# TODO: Add Realtor's bot
 
 	# Send WhatsApp message to the customer for onboarding
+	template_params = {
+		"customer_name": customer.customer_name,
+		"order_id": doc.name,
+		"company_name": "Spectrum PS",
+	}
+
 	frappe.log("Sending welcome message to customer...")
 	frappe.enqueue(
 		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
 		queue="short",
 		enqueue_after_commit=True,
+		# Parameters
 		message_id=f"{doc.name}-welcome-message",
 		sales_order=doc.name,
 		customer=doc.customer,
-		template_id = 'HXf7b41ed33a0f6bf280b8aab4b9862b5c',
-		content_variables = {
-		"customer_name": customer.customer_name,
-		"order_id": doc.name,
-		"company_name": "Spectrum PS",
-	}
+		template_id=TEMPLATE_ORDER_GREETINGS,
+		content_variables=template_params,
 	)
 
 

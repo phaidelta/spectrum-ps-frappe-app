@@ -5,10 +5,10 @@ from spectrum_ps.spectrum_ps.utils import as_user
 from spectrum_ps.utils import get_doc_or_none
 
 from .exceptions import NonExistentCustomerError
+from .integrations.config import excluded_statuses
+from .logger import get_logger
 
-excluded_statuses = ["Cancelled", "Completed"]
-
-logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
+logger = get_logger()
 
 
 def normalize_whatsapp_number(value: str) -> str:
@@ -72,6 +72,10 @@ def get_active_sales_order_for_customer(customer):
 	)
 
 	if not orders:
+		if customer.custom_active_sales_order:
+			customer.custom_active_sales_order = None
+			with as_user():
+				customer.save(ignore_permissions=True)
 		return
 
 	if len(orders) > 1:

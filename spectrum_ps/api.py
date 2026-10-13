@@ -1,5 +1,4 @@
 import json
-import os
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
@@ -17,38 +16,29 @@ from frappe.utils.oauth import (
 )
 from frappe.utils.response import Response
 
+from spectrum_ps.customer_bot import get_raven_channel_and_sales_order, handle_incoming_message
+
 from .exceptions import NoActiveSalesOrdersException, NonExistentCustomerError
-from .integrations.config import require_setting
-from .integrations.raven import RavenClient
+from .integrations.config import ALLOWED_PROVIDERS, excluded_statuses
 from .integrations.twilio import validate_webhook_signature
-from .messaging import get_active_sales_order_for_customer, get_customer_by_whatsapp
-from .realtime import publish_message
+from .logger import get_logger
 
 if TYPE_CHECKING:
 	from frappe.core.doctype.user.user import User
 
-ALLOWED_PROVIDERS = frozenset({"google", "facebook"})
-
-logger = frappe.logger("spectrum_ps", allow_site=True, file_count=50)
+logger = get_logger()
 
 
-def get_raven_channel_and_sales_order(sender_phone: str):
-	"""Resolve WhatsApp sender -> Customer -> active Sales Order -> Raven Channel."""
-	customer = get_customer_by_whatsapp(sender_phone)
-
-	so = get_active_sales_order_for_customer(customer)
-
-	if not so:
-		raise NoActiveSalesOrdersException()
-		# TODO: This should be sent as a message to Twilio, same user, as a reply
-		# frappe.throw(_("Customer {0} has no active In Progress Sales Order.").format(customer.name))
-
-	channel_id = so.custom_raven_channel
-	if not channel_id:
-		# TODO: Log it properly. This error gets sent to Twilio
-		frappe.throw(_("Sales Order {0} has no Raven Channel.").format(so.name))
-
-	return channel_id, so.name, customer
+def _add_sent_outbound_queue(recipient = None, message: str | None = None):
+	doc = frappe.get_doc(
+		{
+			"doctype": "Customer Message Outbound Queue",
+			"recipient": recipient,
+			"message": message,
+			"status": "Sent"
+		}
+	)
+	doc.insert(ignore_permissions=True)
 
 
 def _get_social_redirect_url() -> str:
@@ -338,14 +328,15 @@ def active_orders_count(customer_id: str | None):
 		filters={
 			"customer": customer_id,
 			"docstatus": ["<", 2],
-			"custom_ticket_status": ["not in", ["Completed", "Cancelled"]],
+			"custom_ticket_status": ["not in", excluded_statuses],
 		},
 	)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def whatsapp_webhook(*args, **kwargs):
 	"""Receive Twilio WhatsApp messages and route them to the customer's Raven channel."""
+
 	request_url = getattr(frappe.request, "url", "") if frappe.request else ""
 	form = frappe.form_dict or {}
 
@@ -366,55 +357,81 @@ def whatsapp_webhook(*args, **kwargs):
 
 	if not body:
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+			'<?xml version="1.0" encoding="UTF-8"?><Response />',
 			content_type="application/xml",
 		)
 
 	try:
-		channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)
-		raven_text = f"{body}"
+		inbound_msg_doc = frappe.new_doc("Customer Message Inbound Queue")
+		inbound_msg_doc.mobile_no = sender
+		inbound_msg_doc.message_sid = message_sid
+		inbound_msg_doc.payload = dict(form)
 
-		frappe.flags.in_whatsapp_webhook = True
 		try:
-			bot = frappe.get_doc("Raven Bot", customer.custom_raven_bot)
-			raven_response = bot.send_message(channel_id=channel_id, text=raven_text)
+			channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)
+
+			inbound_msg_doc.sender = customer.name
+			inbound_msg_doc.message = body
+
+			# Directly handle the request
+			if (response := handle_incoming_message(form, customer)) is not None:
+				_add_sent_outbound_queue(recipient=customer.name, message=response)
+
+				# TODO: Properly escape the string to prevent issues
+				return Response(
+					'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % response,
+					content_type="application/xml",
+				)
+
+			raven_text = body
+			frappe.flags.in_whatsapp_webhook = True
+			try:
+				bot = frappe.get_doc("Raven Bot", customer.custom_raven_bot)
+				raven_response = bot.send_message(channel_id=channel_id, text=raven_text)
+				inbound_msg_doc.raven_message = raven_response
+			finally:
+				frappe.flags.in_whatsapp_webhook = False
+
+			return Response(
+				'<?xml version="1.0" encoding="UTF-8"?><Response />',
+				content_type="application/xml",
+			)
 		finally:
-			frappe.flags.in_whatsapp_webhook = False
+			inbound_msg_doc.insert(ignore_permissions=True)
 
-		publish_message(
-			"spectrum_ps_whatsapp_message",
-			direction="whatsapp_to_raven",
-			message={
-				"message_sid": message_sid,
-				"from": sender,
-				"customer": customer.name,
-				"sales_order": so_name,
-				"body": body,
-				"channel_id": channel_id,
-				"raven": raven_response,
-			},
-		)
-
-		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
-			content_type="application/xml",
-		)
 	except NonExistentCustomerError as ex:
 		logger.info(
 			"Got a non-existent customer message from `%s`, message: `%s`\nlog message: %s"
 			% (sender, body, str(ex))
 		)
+
+		message_content = "Hi! Welcome to Spectrum PS.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
+
+		_add_sent_outbound_queue(
+			recipient=None,
+			message=message_content,
+		)
+
 		# TODO: Handle this by sending notification to Admin
 
+		# TODO: Properly escape the string to prevent issues
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>Hi! Welcome to Spectrum PS.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order.</Message></Response>',
+			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % message_content,
 			content_type="application/xml",
 		)
 
-	except NoActiveSalesOrdersException:
+	except NoActiveSalesOrdersException as ex:
 		logger.info("Phone number `%s` messaged us with no active Sales Order" % sender)
 
+		message_content = "Hi! You don't seem to have any active orders.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
+
+		_add_sent_outbound_queue(
+			recipient=ex.customer.name,
+			message=message_content,
+		)
+
+		# TODO: Properly escape the string to prevent issues
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>Hi! You don\'t seem to have any active orders.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order.</Message></Response>',
+			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % message_content,
 			content_type="application/xml",
 		)

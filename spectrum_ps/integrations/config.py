@@ -1,5 +1,8 @@
 import frappe
 
+ALLOWED_PROVIDERS = frozenset({"google", "facebook"})
+excluded_statuses = ["Cancelled", "Paid"]
+
 
 def setting(name: str, default=None):
 	"""Read a site config value or environment variable."""
