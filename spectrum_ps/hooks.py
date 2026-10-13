@@ -168,9 +168,7 @@ doc_events = {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_raven_channel",
 	},
-    "User":{
-        "on_update":"spectrum_ps.spectrum_ps.doc_events.user.remove_raven_channel"
-	},
+	"User": {"on_update": "spectrum_ps.spectrum_ps.doc_events.user.remove_raven_channel"},
 	"ToDo": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.todo.add_assigned_user",
 		"before_save": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_cancel",
@@ -199,11 +197,9 @@ fixtures = [
 			]
 		],
 	},
-    {
-        "dt":"Role",
-        "filters":[
-            ["name", "in", ["Technician","Spectrum PS User"]]
-            ],
+	{
+		"dt": "Role",
+		"filters": [["name", "in", ["Technician", "Spectrum PS User"]]],
 	},
 ]
 
