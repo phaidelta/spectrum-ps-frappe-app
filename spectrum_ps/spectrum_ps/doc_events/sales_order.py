@@ -192,9 +192,11 @@ def handle_sales_order_create(doc, method=None):
 	}
 
 	frappe.log("Sending welcome message to customer...")
-	enqueue_outbound_sales_order_whatsapp_template(
-		doc.name,
-		doc.customer,
+	frappe.enqueue(
+		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
+		queue="short",
+		enqueue_after_commit=True,
+		# Parameters
 		message_id=f"{doc.name}-welcome-message",
 		template_id=TEMPLATE_ORDER_GREETINGS,
 		content_variables=template_params,
