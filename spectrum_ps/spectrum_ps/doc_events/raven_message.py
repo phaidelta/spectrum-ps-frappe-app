@@ -47,8 +47,10 @@ def send_outbound_whatsapp(doc, method=None):
 
 	template = {
 		"content_sid": "HX5edfd4af77fea1daf05e7f073ab90bbe",
-		"agent_name": sender_name,
-		"agent_message": body,
+		"content_variables": {
+			"agent_name": sender_name,
+			"agent_message": body,
+		}
 	}
 
 	# Send in a background job so Raven stays fast and a Twilio error
