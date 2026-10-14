@@ -174,6 +174,9 @@ doc_events = {
 		"before_save": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_cancel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_trash",
 	},
+	"Sales Invoice":{
+		"on_submit":"spectrum_ps.spectrum_ps.doc_events.sales_invoice.on_sales_invoice_submit"
+	},
 	"Raven Message": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp"
 	},

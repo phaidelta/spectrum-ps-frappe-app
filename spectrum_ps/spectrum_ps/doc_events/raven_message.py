@@ -34,7 +34,7 @@ def send_outbound_whatsapp(doc, method=None):
 		return
 
 	sender_name = frappe.get_doc("User", doc.owner)
-	body = "*{sender}*:\n{body}".format(sender=sender_name.first_name.strip(), body=body)
+	body_ = "*{sender}*:\n{body}".format(sender=sender_name.first_name.strip(), body=body)
 
 	sales_order = get_sales_order_by_raven_channel(doc.channel_id)
 	if not sales_order:
@@ -45,6 +45,12 @@ def send_outbound_whatsapp(doc, method=None):
 	with as_user():
 		customer.save(ignore_permissions=True)
 
+	template = {
+		"content_sid": "HX5edfd4af77fea1daf05e7f073ab90bbe",
+		"agent_name": sender_name,
+		"agent_message": body,
+	}
+
 	# Send in a background job so Raven stays fast and a Twilio error
 	# can never roll back the admin's message.
 	frappe.enqueue(
@@ -54,7 +60,8 @@ def send_outbound_whatsapp(doc, method=None):
 		message_id=doc.name,
 		sales_order=sales_order.name,
 		customer=sales_order.customer,
-		body=body,
+		body=body_,
+		template=template,
 	)
 
 
