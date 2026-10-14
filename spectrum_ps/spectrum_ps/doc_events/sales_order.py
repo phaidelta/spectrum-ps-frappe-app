@@ -215,22 +215,6 @@ def handle_sales_order_remove(doc, method=None):
 		frappe.get_doc("Raven Channel", channel_name).delete(ignore_permissions=True)
 
 
-def update_sales_order(doc, method=None):
-	"""Sales Order saved: Compare with the previous saved state and route to the right handler."""
-
-	before = doc.get_doc_before_save()
-
-	old_status = before.get("custom_ticket_status") if before else None
-
-	new_status = doc.get("custom_ticket_status")
-
-	if old_status == new_status:
-		return
-
-	if new_status == "Completed":
-		handle_completed(doc)
-	elif new_status == "Accepted":
-		handle_accepted(doc)
 
 def remove_technicians_on_complete(doc, method=None):
 	"""Remove assigned technicians from the Raven chat when an order is completed.
@@ -238,8 +222,7 @@ def remove_technicians_on_complete(doc, method=None):
 	The Raven Channel itself is deliberately retained so the conversation remains
 	visible in the channel/list history.
 	"""
-	restricted_statuses =  {"Completed", "Paid"}
-	if doc.get("custom_ticket_status") not in restricted_statuses:
+	if doc.get("custom_ticket_status") != "Complete":
 		return
 
 	channel_id = doc.get("custom_raven_channel")
@@ -285,3 +268,21 @@ def remove_technicians_on_complete(doc, method=None):
 				frappe.get_traceback(),
 				f"Failed removing technician {user_id} from completed channel {channel_id}",
 			)
+
+
+def update_sales_order(doc, method=None):
+	"""Sales Order saved: Compare with the previous saved state and route to the right handler."""
+
+	before = doc.get_doc_before_save()
+
+	old_status = before.get("custom_ticket_status") if before else None
+
+	new_status = doc.get("custom_ticket_status")
+
+	if old_status == new_status:
+		return
+
+	if new_status == "Completed":
+		handle_completed(doc)
+	elif new_status == "Accepted":
+		handle_accepted(doc)
