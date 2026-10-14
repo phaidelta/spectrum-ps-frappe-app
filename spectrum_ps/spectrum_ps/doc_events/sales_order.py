@@ -231,3 +231,56 @@ def update_sales_order(doc, method=None):
 		handle_completed(doc)
 	elif new_status == "Accepted":
 		handle_accepted(doc)
+
+def remove_technicians_on_complete(doc, method=None):
+	"""Remove assigned technicians from the Raven chat when an order is completed.
+
+	The Raven Channel itself is deliberately retained so the conversation remains
+	visible in the channel/list history.
+	"""
+	if doc.get("custom_ticket_status") != "Complete":
+		return
+
+	channel_id = doc.get("custom_raven_channel")
+	if not channel_id or not frappe.db.exists("Raven Channel", channel_id):
+		return
+
+	# Find the Sales Order's ToDo assignments; only remove the assigned users,
+	# not the customer bot or admin, and do not delete the channel.
+	assignments = frappe.get_all(
+		"ToDo",
+		filters={
+			"reference_type": "Sales Order",
+			"reference_name": doc.name,
+			"allocated_to": ["is", "set"],
+			"status": ["!=", "Cancelled"],
+		},
+		fields=["allocated_to"],
+	)
+	for assignment in assignments:
+		user_id = assignment.get("allocated_to")
+		if not user_id or not frappe.db.exists("Raven User", user_id):
+			continue
+		if not frappe.db.exists(
+			"Raven Channel Member",
+			{"channel_id": channel_id, "user_id": user_id},
+		):
+			continue
+
+		try:
+			with as_user():
+				frappe.call(
+					"raven.api.raven_channel_member.remove_channel_member",
+					user_id=user_id,
+					channel_id=channel_id,
+				)
+			frappe.logger("spectrum_ps").info(
+					"Removed technician %s from completed Sales Order channel %s",
+					user_id,
+					channel_id,
+				)
+		except Exception:
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Failed removing technician {user_id} from completed channel {channel_id}",
+			)
