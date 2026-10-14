@@ -166,6 +166,7 @@ doc_events = {
 	},
 	"Sales Order": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
+		"on_update": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_technicians_on_complete",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_raven_channel",
 	},
 	"User": {"on_update": "spectrum_ps.spectrum_ps.doc_events.user.remove_raven_channel"},
