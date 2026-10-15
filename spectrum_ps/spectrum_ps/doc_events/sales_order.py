@@ -6,6 +6,7 @@ from spectrum_ps.config import (
 	TEMPLATE_ORDER_GREETINGS,
 	TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
 )
+from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
 from spectrum_ps.context_managers import as_user
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
@@ -110,8 +111,7 @@ def handle_sales_order_create(doc, method=None):
 		frappe.log(f"Using existing Raven Channel `{existing_channel_name}` for Sales Order `{doc.name}`")
 		raven_channel = frappe.get_doc("Raven Channel", existing_channel_name)
 	else:
-		# TODO: Get the system manager user from config. This defaults to Administrator
-		with as_user():
+		with as_user(SYSTEM_MANAGER_USER):
 			frappe.log(f"Creating Raven Channel `{channel_name}` for Sales Order `{doc.name}`")
 			raven_channel = frappe.get_doc(
 				{
@@ -123,8 +123,7 @@ def handle_sales_order_create(doc, method=None):
 			)
 			raven_channel.insert(ignore_permissions=True)
 
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		frappe.log(f"Linking raven channel {raven_channel.name} to Sales Order {doc.name}")
 		doc.custom_raven_channel = raven_channel.name
 		doc.save(ignore_permissions=True)
@@ -139,8 +138,7 @@ def handle_sales_order_create(doc, method=None):
 			f"Adding user `{ADMIN_USER}` for Sales Order `{doc.name}` to raven channel `{raven_channel.name}`"
 		)
 
-		# TODO: Get the system manager user from config. This defaults to Administrator
-		with as_user():
+		with as_user(SYSTEM_MANAGER_USER):
 			frappe.call(
 				"raven.api.raven_channel_member.add_channel_members",
 				channel_id=raven_channel.name,
@@ -150,8 +148,7 @@ def handle_sales_order_create(doc, method=None):
 	# admins = frappe.conf.get("spectrum_ps_raven_admins") or [doc.owner]
 	# members = [u for u in admins if frappe.db.exists("Raven User", u)]
 	# if members:
-	# 	# TODO: Get the system manager user from config. This defaults to Administrator
-	# 	with as_user():
+	# 	with as_user(SYSTEM_MANAGER_USER):
 	# 		frappe.call(
 	# 			"raven.api.raven_channel_member.add_channel_members",
 	# 			channel_id=raven_channel.name,
@@ -168,14 +165,12 @@ def handle_sales_order_create(doc, method=None):
 	customer = frappe.get_cached_doc("Customer", doc.customer)
 
 	# Get Raven Bot associated with the customer
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		bot = ensure_customer_has_bot(customer)
 
 	frappe.log(f"Adding Raven Bot `{bot}` to Channel `{raven_channel.name}`")
 	bot_user = frappe.get_cached_doc("Raven Bot", bot)
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		bot_add_to_channel(bot_user, raven_channel.name)
 
 	frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
@@ -210,8 +205,7 @@ def handle_sales_order_remove(doc, method=None):
 		return
 
 	frappe.log(f"Removing Raven Channel `{channel_name}` for Sales Order `{doc.name}`")
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		frappe.get_doc("Raven Channel", channel_name).delete(ignore_permissions=True)
 
 

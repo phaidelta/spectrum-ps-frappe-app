@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 
+from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
 from spectrum_ps.context_managers import as_user
 from spectrum_ps.utils import get_doc_or_none
 
@@ -74,7 +75,7 @@ def get_active_sales_order_for_customer(customer):
 	if not orders:
 		if customer.custom_active_sales_order:
 			customer.custom_active_sales_order = None
-			with as_user():
+			with as_user(SYSTEM_MANAGER_USER):
 				customer.save(ignore_permissions=True)
 		return
 
@@ -89,7 +90,7 @@ def get_active_sales_order_for_customer(customer):
 	chosen_so = orders[0]
 	customer.custom_active_sales_order = chosen_so.name
 
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		customer.save(ignore_permissions=True)
 
 	return chosen_so
