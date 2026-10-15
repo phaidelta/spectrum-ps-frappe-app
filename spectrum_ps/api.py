@@ -368,7 +368,7 @@ def whatsapp_webhook(*args, **kwargs):
 		inbound_msg_doc.payload = dict(form)
 
 		try:
-			channel_id, so_name, customer = get_raven_channel_and_sales_order(sender)
+			channel_id, _so_name, customer = get_raven_channel_and_sales_order(sender)
 
 			inbound_msg_doc.sender = customer.name
 			inbound_msg_doc.message = body
