@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from spectrum_ps.spectrum_ps.utils import as_user
+from spectrum_ps.context_managers import as_user
 
 
 def _get_bot_id(doc):
@@ -75,7 +75,6 @@ def remove_customer_bot(doc, method):
 	"""called when the customer is deleted"""
 
 	bot_id = doc.custom_raven_bot
-
 
 	# TODO: Get the system manager user from config. This defaults to Administrator
 	with as_user():

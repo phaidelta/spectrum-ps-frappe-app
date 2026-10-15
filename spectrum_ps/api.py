@@ -14,12 +14,12 @@ from frappe.utils.oauth import (
 	get_user_record,
 	update_oauth_user,
 )
-from frappe.utils.response import Response
+from werkzeug.wrappers import Response
 
 from spectrum_ps.customer_bot import get_raven_channel_and_sales_order, handle_incoming_message
 
+from .config import ALLOWED_PROVIDERS, INACTIVE_TICKET_STATUSES
 from .exceptions import NoActiveSalesOrdersException, NonExistentCustomerError
-from .integrations.config import ALLOWED_PROVIDERS, excluded_statuses
 from .integrations.twilio import validate_webhook_signature
 from .logger import get_logger
 
@@ -29,13 +29,13 @@ if TYPE_CHECKING:
 logger = get_logger()
 
 
-def _add_sent_outbound_queue(recipient = None, message: str | None = None):
+def _add_sent_outbound_queue(recipient=None, message: str | None = None):
 	doc = frappe.get_doc(
 		{
 			"doctype": "Customer Message Outbound Queue",
 			"recipient": recipient,
 			"message": message,
-			"status": "Sent"
+			"status": "Sent",
 		}
 	)
 	doc.insert(ignore_permissions=True)
@@ -328,7 +328,7 @@ def active_orders_count(customer_id: str | None):
 		filters={
 			"customer": customer_id,
 			"docstatus": ["<", 2],
-			"custom_ticket_status": ["not in", excluded_statuses],
+			"custom_ticket_status": ["not in", INACTIVE_TICKET_STATUSES],
 		},
 	)
 
@@ -379,7 +379,8 @@ def whatsapp_webhook(*args, **kwargs):
 
 				# TODO: Properly escape the string to prevent issues
 				return Response(
-					'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % response,
+					'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
+					% response,
 					content_type="application/xml",
 				)
 
@@ -416,7 +417,8 @@ def whatsapp_webhook(*args, **kwargs):
 
 		# TODO: Properly escape the string to prevent issues
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % message_content,
+			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
+			% message_content,
 			content_type="application/xml",
 		)
 
@@ -432,6 +434,7 @@ def whatsapp_webhook(*args, **kwargs):
 
 		# TODO: Properly escape the string to prevent issues
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % message_content,
+			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
+			% message_content,
 			content_type="application/xml",
 		)

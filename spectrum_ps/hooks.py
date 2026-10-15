@@ -165,9 +165,9 @@ doc_events = {
 		"on_update": "spectrum_ps.spectrum_ps.doc_events.customer.sync_customer_raven_user",
 	},
 	"Sales Order": {
-		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
-		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_raven_channel",
-        "on_update": "spectrum_ps.spectrum_ps.doc_events.sales_order.update_sales_order",
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_create",
+		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_remove",
+		"on_update": "spectrum_ps.spectrum_ps.doc_events.sales_order.update_sales_order",
 	},
 	"User": {"on_update": "spectrum_ps.spectrum_ps.doc_events.user.check_and_add_role"},
 	"ToDo": {
@@ -175,8 +175,8 @@ doc_events = {
 		"before_save": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_cancel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_trash",
 	},
-	"Sales Invoice":{
-		"on_submit":"spectrum_ps.spectrum_ps.doc_events.sales_invoice.on_sales_invoice_submit"
+	"Sales Invoice": {
+		"on_submit": "spectrum_ps.spectrum_ps.doc_events.sales_invoice.on_sales_invoice_submit"
 	},
 	"Raven Message": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp"
