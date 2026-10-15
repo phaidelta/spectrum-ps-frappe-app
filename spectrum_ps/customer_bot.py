@@ -1,14 +1,11 @@
 import frappe
 from frappe import _
 
+from spectrum_ps.config.free_form_messages import TICKET_DETAILS_MESSAGE
 from spectrum_ps.utils import get_cached_doc_or_none
 
 from .exceptions import NoActiveSalesOrdersException
 from .messaging import get_active_sales_order_for_customer, get_customer_by_whatsapp
-
-TICKET_DETAILS_MESSAGE = """Ticket details:
-Service requested: {service_type}
-Location: {location}"""
 
 
 def get_customer_recent_so(customer):

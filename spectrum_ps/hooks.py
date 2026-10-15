@@ -165,8 +165,8 @@ doc_events = {
 		"on_update": "spectrum_ps.spectrum_ps.doc_events.customer.sync_customer_raven_user",
 	},
 	"Sales Order": {
-		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.create_raven_channel",
-		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.remove_raven_channel",
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_create",
+		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_remove",
         "on_update": "spectrum_ps.spectrum_ps.doc_events.sales_order.update_sales_order",
 	},
 	"User": {"on_update": "spectrum_ps.spectrum_ps.doc_events.user.check_and_add_role"},

@@ -1,7 +1,11 @@
 from urllib.parse import urlencode
+
 import frappe
 from frappe import _
 from frappe.utils import get_url
+
+from spectrum_ps.config import TEMPLATE_SALES_INVOICE
+from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
 
 
 def on_sales_invoice_submit(doc, method=None):
@@ -39,14 +43,10 @@ def _send_invoice_message(doc):
 		"invoice_download_link": _invoice_download_link(doc),
 	}
 
-	frappe.enqueue(
-		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
-		queue="short",
-		enqueue_after_commit=True,
-		# Parameters
-		message_id=f"{doc.name}-Sale-Invoice-Generated-Message",
-		sales_order=sales_order,
-		customer=doc.customer,
-		template_id="HXa2d1c0890e64450d7f9bffcb11683b41",
-		content_variables=template_params,
+	enqueue_outbound_sales_order_whatsapp_template(
+		sales_order,
+		customer_name,
+		f"{doc.name}-Sale-Invoice-Generated-Message",
+		TEMPLATE_SALES_INVOICE,
+		template_params,
 	)

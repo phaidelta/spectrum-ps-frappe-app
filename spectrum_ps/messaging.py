@@ -1,11 +1,11 @@
 import frappe
 from frappe import _
 
-from spectrum_ps.spectrum_ps.utils import as_user
+from spectrum_ps.context_managers import as_user
 from spectrum_ps.utils import get_doc_or_none
 
+from .config import INACTIVE_TICKET_STATUSES
 from .exceptions import NonExistentCustomerError
-from .integrations.config import excluded_statuses
 from .logger import get_logger
 
 logger = get_logger()
@@ -49,7 +49,7 @@ def get_active_sales_order_for_customer(customer):
 		active_so = get_doc_or_none(
 			"Sales Order",
 			active_so_name,
-			filters={"docstatus": ["<", 2], "custom_ticket_status": ["not in", excluded_statuses]},
+			filters={"docstatus": ["<", 2], "custom_ticket_status": ["not in", INACTIVE_TICKET_STATUSES]},
 		)
 		if active_so is not None:
 			return active_so
@@ -64,7 +64,7 @@ def get_active_sales_order_for_customer(customer):
 		filters={
 			"customer": customer.name,
 			"docstatus": ["<", 2],
-			"custom_ticket_status": ["not in", excluded_statuses],
+			"custom_ticket_status": ["not in", INACTIVE_TICKET_STATUSES],
 		},
 		fields=["name", "customer", "custom_ticket_status", "custom_raven_channel"],
 		order_by="modified desc",
@@ -104,7 +104,7 @@ def get_sales_order_by_raven_channel(channel_id: str):
 		"Sales Order",
 		filters={
 			"custom_raven_channel": channel_id,
-			"custom_ticket_status": ["not in", excluded_statuses],
+			"custom_ticket_status": ["not in", INACTIVE_TICKET_STATUSES],
 			"docstatus": ["<", 2],
 		},
 		fields=["name", "customer", "custom_ticket_status", "custom_raven_channel"],

@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from spectrum_ps.spectrum_ps.utils import as_user
+from spectrum_ps.context_managers import as_user
 
 
 def _get_bot_id(doc):
