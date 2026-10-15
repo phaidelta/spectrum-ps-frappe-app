@@ -7,6 +7,7 @@ def get_doc_or_none(*args, **kwargs):
 	except frappe.DoesNotExistError:
 		pass
 
+
 def get_cached_doc_or_none(*args, **kwargs):
 	try:
 		return frappe.get_cached_doc(*args, **kwargs)
@@ -14,7 +15,9 @@ def get_cached_doc_or_none(*args, **kwargs):
 		pass
 
 
-def enqueue_outbound_sales_order_whatsapp_template(sales_order_name, customer_name, message_id, template_id, content_variables):
+def enqueue_outbound_sales_order_whatsapp_template(
+	sales_order_name, customer_name, message_id, template_id, content_variables
+):
 	"""
 	Small helper method to create an outbound message using Twilio template specifically for Sales Order messages
 	"""

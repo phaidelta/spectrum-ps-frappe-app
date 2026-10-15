@@ -36,7 +36,10 @@ def add_assigned_user(doc, method=None):
 		frappe.log(f"Sales Order `{sales_order.name}` has no Raven Channel linked")
 		frappe.throw(_("Sales Order {0} must have a Raven Channel linked.").format(sales_order.name))
 
-	if sales_order.custom_ticket_status in TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY:
+	if (
+		sales_order.custom_ticket_status
+		in TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY
+	):
 		frappe.log(f"Updating Sales Order `{sales_order.name}` ticket status to Assigned")
 		sales_order.custom_ticket_status = "Assigned"
 		# TODO: Get the system manager user from config. This defaults to Administrator

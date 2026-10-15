@@ -25,8 +25,8 @@ def handle_completed(doc):
 		message_id=f"{doc.name}-Sale-Order-Completion-Message",
 		content_variables={
 			"customer_name": _get_customer_name(doc),
-			"order_id": doc.name
-		}
+			"order_id": doc.name,
+		},
 	)
 
 
@@ -48,9 +48,9 @@ def handle_accepted(doc):
 		message_id=f"{doc.name}-Sale-Order-Assignment-Message",
 		content_variables={
 			"customer_name": _get_customer_name(doc),
-			"technician_name":technician_name,
-			"order_id": doc.name
-		}
+			"technician_name": technician_name,
+			"order_id": doc.name,
+		},
 	)
 
 

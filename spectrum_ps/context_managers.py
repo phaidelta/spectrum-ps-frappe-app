@@ -30,7 +30,7 @@ def as_user(user: str | None = DEFAULT_ELEVATED_SER):
 	Usage:
 	```python
 	with as_user("some user"):
-		...
+	    ...
 	```
 	"""
 
