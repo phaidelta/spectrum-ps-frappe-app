@@ -238,7 +238,7 @@ def remove_technicians_on_complete(doc, method=None):
 	The Raven Channel itself is deliberately retained so the conversation remains
 	visible in the channel/list history.
 	"""
-	if doc.get("custom_ticket_status") != "Complete":
+	if doc.get("custom_ticket_status") != "Completed":
 		return
 
 	channel_id = doc.get("custom_raven_channel")
