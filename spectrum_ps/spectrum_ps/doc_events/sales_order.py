@@ -3,6 +3,7 @@ from frappe import _
 
 from spectrum_ps.config import (
 	TECHNICIAN_INACTIVE_TICKET_STATES,
+	TECHNICIAN_INACTIVE_TICKET_STATES,
 	TEMPLAET_ORDER_COMPLETE,
 	TEMPLATE_ORDER_GREETINGS,
 	TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
@@ -272,35 +273,13 @@ def remove_technicians_on_complete(doc, method=None):
 
 
 
-def update_sales_order(doc, method=None):
-	"""Sales Order saved: Compare with the previous saved state and route to the right handler."""
-
-	# 1. Trigger technician removal based on the inactive status configuration
-	remove_technicians_on_complete(doc, method)
-
-	before = doc.get_doc_before_save()
-
-	old_status = before.get("custom_ticket_status") if before else None
-
-	new_status = doc.get("custom_ticket_status")
-
-	if old_status == new_status:
-		return
-
-	if new_status == "Completed":
-		handle_completed(doc)
-	elif new_status == "Accepted":
-		handle_accepted(doc)
-
-
 def remove_technicians_on_complete(doc, method=None):
 	"""Remove assigned technicians from the Raven chat when an order is completed.
 
 	The Raven Channel itself is deliberately retained so the conversation remains
 	visible in the channel/list history.
 	"""
-	restricted_statuses =  {"Completed", "Paid"}
-	if doc.get("custom_ticket_status") not in restricted_statuses:
+	if doc.get("custom_ticket_status") not in TECHNICIAN_INACTIVE_TICKET_STATES:
 		return
 
 	channel_id = doc.get("custom_raven_channel")
@@ -337,12 +316,33 @@ def remove_technicians_on_complete(doc, method=None):
 					channel_id=channel_id,
 				)
 			frappe.logger("spectrum_ps").info(
-					"Removed technician %s from completed Sales Order channel %s",
-					user_id,
-					channel_id,
-				)
+				"Removed technician %s from completed Sales Order channel %s",
+				user_id,
+				channel_id,
+			)
 		except Exception:
 			frappe.log_error(
 				frappe.get_traceback(),
 				f"Failed removing technician {user_id} from completed channel {channel_id}",
 			)
+
+
+def update_sales_order(doc, method=None):
+	"""Sales Order saved: Compare with the previous saved state and route to the right handler."""
+
+	# 1. Trigger technician removal based on the inactive status configuration
+	remove_technicians_on_complete(doc, method)
+
+	before = doc.get_doc_before_save()
+
+	old_status = before.get("custom_ticket_status") if before else None
+
+	new_status = doc.get("custom_ticket_status")
+
+	if old_status == new_status:
+		return
+
+	if new_status == "Completed":
+		handle_completed(doc)
+	elif new_status == "Accepted":
+		handle_accepted(doc)

@@ -25,11 +25,6 @@ build-backend = "flit_core.buildapi"
 [deploy.dependencies.apt]
 packages = []
 
-[dependency-groups]
-dev = [
-    "pre-commit>=4.7.0",
-]
-
 [tool.ruff]
 line-length = 110
 target-version = "py314"
