@@ -1,14 +1,11 @@
 import frappe
 from frappe import _
 
+from spectrum_ps.config.free_form_messages import TICKET_DETAILS_MESSAGE
 from spectrum_ps.utils import get_cached_doc_or_none
 
 from .exceptions import NoActiveSalesOrdersException
 from .messaging import get_active_sales_order_for_customer, get_customer_by_whatsapp
-
-TICKET_DETAILS_MESSAGE = """Ticket details:
-Service requested: {service_type}
-Location: {location}"""
 
 
 def get_customer_recent_so(customer):
@@ -76,3 +73,7 @@ def handle_incoming_message(form_data, customer) -> str | None:
 				else:
 					# TODO: This should not happen
 					return "Sorry! You currently don't have any active Tickets. If this is a mistake, please contact us."
+			case "btn_order_technician_assigned_continue":
+				pass
+			case "btn_reach_out_continue":
+				pass

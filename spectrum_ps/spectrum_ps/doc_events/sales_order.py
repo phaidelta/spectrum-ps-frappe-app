@@ -1,14 +1,57 @@
 import frappe
 from frappe import _
 
-from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
-from spectrum_ps.spectrum_ps.utils import as_user
-
-CUSTOMER_WELCOME_MESSAGE = (
-	"""Hello {customer_name}, your ticket {order_id} has been received by {company_name}."""
+from spectrum_ps.config import (
+	TEMPLAET_ORDER_COMPLETE,
+	TEMPLATE_ORDER_GREETINGS,
+	TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
 )
+from spectrum_ps.context_managers import as_user
+from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
+from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
 
-TEMPLATE_ORDER_GREETINGS = "HXf7b41ed33a0f6bf280b8aab4b9862b5c"
+
+def _get_customer_name(doc):
+	return frappe.db.get_value("Customer", doc.customer, "customer_name") or doc.customer
+
+
+def handle_completed(doc):
+	frappe.log(f"Sending Completion message to customer for {doc.name}..")
+
+	enqueue_outbound_sales_order_whatsapp_template(
+		doc,
+		doc.customer,
+		template_id=TEMPLAET_ORDER_COMPLETE,
+		message_id=f"{doc.name}-Sale-Order-Completion-Message",
+		content_variables={
+			"customer_name": _get_customer_name(doc),
+			"order_id": doc.name,
+		},
+	)
+
+
+def handle_accepted(doc):
+	assigness = frappe.parse_json(frappe.db.get_value("Sales Order", doc.name, "_assign") or "[]")
+	if not assigness:
+		frappe.log(f"Sales Order `{doc.name}` accepted but has no assignee; skipping customer message")
+		return
+
+	technician = assigness[0]
+	technician_name = frappe.db.get_value("User", technician, "full_name") or technician
+
+	frappe.log(f"Sending Technician-assigned message to customer for {doc.name}..")
+
+	enqueue_outbound_sales_order_whatsapp_template(
+		doc,
+		doc.customer,
+		template_id=TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
+		message_id=f"{doc.name}-Sale-Order-Assignment-Message",
+		content_variables={
+			"customer_name": _get_customer_name(doc),
+			"technician_name": technician_name,
+			"order_id": doc.name,
+		},
+	)
 
 
 def bot_add_to_channel(bot, channel_id: str) -> str:
@@ -54,7 +97,7 @@ def ensure_customer_has_bot(customer):
 	return customer.custom_raven_bot
 
 
-def create_raven_channel(doc, method=None):
+def handle_sales_order_create(doc, method=None):
 	frappe.log(f"Creating or updating Raven channel for Sales Order `{doc.name}`")
 	workspace = "Customer communications"
 	channel_name = doc.name
@@ -147,20 +190,16 @@ def create_raven_channel(doc, method=None):
 	}
 
 	frappe.log("Sending welcome message to customer...")
-	frappe.enqueue(
-		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
-		queue="short",
-		enqueue_after_commit=True,
-		# Parameters
+	enqueue_outbound_sales_order_whatsapp_template(
+		doc.name,
+		doc.customer,
 		message_id=f"{doc.name}-welcome-message",
-		sales_order=doc.name,
-		customer=doc.customer,
 		template_id=TEMPLATE_ORDER_GREETINGS,
 		content_variables=template_params,
 	)
 
 
-def remove_raven_channel(doc, method=None):
+def handle_sales_order_remove(doc, method=None):
 	channel_name = getattr(doc, "custom_raven_channel", None)
 	if not channel_name:
 		frappe.log(f"Sales Order `{doc.name}` has no Raven Channel to remove")
@@ -230,3 +269,19 @@ def remove_technicians_on_complete(doc, method=None):
 				frappe.get_traceback(),
 				f"Failed removing technician {user_id} from completed channel {channel_id}",
 			)
+def update_sales_order(doc, method=None):
+	"""Sales Order saved: Compare with the previous saved state and route to the right handler."""
+
+	before = doc.get_doc_before_save()
+
+	old_status = before.get("custom_ticket_status") if before else None
+
+	new_status = doc.get("custom_ticket_status")
+
+	if old_status == new_status:
+		return
+
+	if new_status == "Completed":
+		handle_completed(doc)
+	elif new_status == "Accepted":
+		handle_accepted(doc)
