@@ -10,6 +10,7 @@ from spectrum_ps.config.logic_config import TECHNICIAN_INACTIVE_TICKET_STATES
 from spectrum_ps.context_managers import as_user
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
+from raven.api.raven_channel_member import remove_channel_member
 
 
 def _get_customer_name(doc):
@@ -258,12 +259,14 @@ def remove_technicians_on_complete(doc, method=None):
 			continue
 
 		try:
+			from raven.api.raven_channel_member import remove_channel_member
+
 			with as_user():
-				frappe.call(
-					"raven.api.raven_channel_member.remove_channel_member",
+				remove_channel_member(
 					user_id=user_id,
 					channel_id=channel_id,
-				)
+					)
+
 
 			frappe.logger("spectrum_ps").info(
 				"Removed technician %s from inactive Sales Order channel %s",
