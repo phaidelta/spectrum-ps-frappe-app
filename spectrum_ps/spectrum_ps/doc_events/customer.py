@@ -76,7 +76,6 @@ def remove_customer_bot(doc, method):
 
 	bot_id = doc.custom_raven_bot
 
-
 	# TODO: Get the system manager user from config. This defaults to Administrator
 	with as_user():
 		if frappe.db.exists("Raven Bot", {"name": bot_id}):

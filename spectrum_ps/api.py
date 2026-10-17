@@ -29,13 +29,13 @@ if TYPE_CHECKING:
 logger = get_logger()
 
 
-def _add_sent_outbound_queue(recipient = None, message: str | None = None):
+def _add_sent_outbound_queue(recipient=None, message: str | None = None):
 	doc = frappe.get_doc(
 		{
 			"doctype": "Customer Message Outbound Queue",
 			"recipient": recipient,
 			"message": message,
-			"status": "Sent"
+			"status": "Sent",
 		}
 	)
 	doc.insert(ignore_permissions=True)
@@ -379,7 +379,8 @@ def whatsapp_webhook(*args, **kwargs):
 
 				# TODO: Properly escape the string to prevent issues
 				return Response(
-					'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % response,
+					'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
+					% response,
 					content_type="application/xml",
 				)
 
@@ -416,7 +417,8 @@ def whatsapp_webhook(*args, **kwargs):
 
 		# TODO: Properly escape the string to prevent issues
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % message_content,
+			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
+			% message_content,
 			content_type="application/xml",
 		)
 
@@ -432,6 +434,7 @@ def whatsapp_webhook(*args, **kwargs):
 
 		# TODO: Properly escape the string to prevent issues
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>' % message_content,
+			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
+			% message_content,
 			content_type="application/xml",
 		)

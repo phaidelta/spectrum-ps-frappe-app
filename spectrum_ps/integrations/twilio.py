@@ -171,7 +171,7 @@ def send_whatsapp_template_message(
 		{
 			"content_sid": content_sid,
 			"content_variables": content_variables,
-		}
+		},
 	)
 
 	return message.sid
