@@ -169,14 +169,11 @@ doc_events = {
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_remove",
 		"on_update": "spectrum_ps.spectrum_ps.doc_events.sales_order.update_sales_order",
 	},
-	"User": {"on_update": "spectrum_ps.spectrum_ps.doc_events.user.check_and_add_role"},
+	"User": {"on_update": "spectrum_ps.spectrum_ps.doc_events.user.remove_raven_channel"},
 	"ToDo": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.todo.add_assigned_user",
 		"before_save": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_cancel",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.todo.remove_assigned_user_on_trash",
-	},
-	"Sales Invoice": {
-		"on_submit": "spectrum_ps.spectrum_ps.doc_events.sales_invoice.on_sales_invoice_submit"
 	},
 	"Raven Message": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp"
