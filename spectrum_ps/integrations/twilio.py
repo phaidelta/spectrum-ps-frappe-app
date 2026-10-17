@@ -141,7 +141,7 @@ def send_whatsapp_template_message(
 	content_sid: str = "",
 	content_variables: dict | None = None,
 	to_number: str | None = None,
-) -> str:
+) -> str | None:
 	"""Send a approved WhatsApp content template via Twilio REST API."""
 	recipient = to or to_number
 
