@@ -42,8 +42,8 @@ def send_outbound_whatsapp(doc, method=None):
 		return  # not a Sales Order channel, ignore
 
 	customer = frappe.get_doc("Customer", sales_order.customer)
-	customer.custom_active_sales_order = doc.name
-	with as_user(SYSTEM_MANAGER_USER):
+	customer.custom_active_sales_order = sales_order.name
+	with as_user():
 		customer.save(ignore_permissions=True)
 
 	template = {
