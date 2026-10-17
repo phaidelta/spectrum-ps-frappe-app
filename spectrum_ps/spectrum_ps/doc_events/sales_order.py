@@ -217,12 +217,6 @@ def handle_sales_order_remove(doc, method=None):
 
 
 def remove_technicians_on_complete(doc, method=None):
-	"""
-	Remove assigned technicians from the Raven channel when the ticket
-	reaches an inactive status.
-
-	Does not unassign technicians, modify ToDo records, or delete the channel.
-	"""
 
 	if doc.get("custom_ticket_status") not in TECHNICIAN_INACTIVE_TICKET_STATES:
 		return
