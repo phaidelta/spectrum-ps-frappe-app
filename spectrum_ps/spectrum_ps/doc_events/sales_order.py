@@ -2,14 +2,12 @@ import frappe
 from frappe import _
 
 from spectrum_ps.config import (
-	TECHNICIAN_INACTIVE_TICKET_STATES,
-	TECHNICIAN_INACTIVE_TICKET_STATES,
 	TEMPLAET_ORDER_COMPLETE,
 	TEMPLATE_ORDER_GREETINGS,
 	TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
 )
-from spectrum_ps.config import TECHNICIAN_INACTIVE_TICKET_STATES
 from spectrum_ps.context_managers import as_user
+from spectrum_ps.config.logic_config import TECHNICIAN_INACTIVE_TICKET_STATES
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
 
@@ -193,16 +191,13 @@ def handle_sales_order_create(doc, method=None):
 	}
 
 	frappe.log("Sending welcome message to customer...")
-	frappe.enqueue(
-		"spectrum_ps.spectrum_ps.doc_events.raven_message.deliver_template_message_to_whatsapp",
-		queue="short",
-		enqueue_after_commit=True,
-		# Parameters
+	enqueue_outbound_sales_order_whatsapp_template(
+		doc.name,
+		doc.customer,
 		message_id=f"{doc.name}-welcome-message",
 		template_id=TEMPLATE_ORDER_GREETINGS,
 		content_variables=template_params,
 	)
-
 
 def handle_sales_order_remove(doc, method=None):
 	channel_name = getattr(doc, "custom_raven_channel", None)
@@ -221,131 +216,103 @@ def handle_sales_order_remove(doc, method=None):
 
 
 def remove_technicians_on_complete(doc, method=None):
-	"""Remove assigned technicians from the Raven chat when an order is completed.
+    """
+    Remove assigned technicians from the Raven channel when the ticket
+    reaches an inactive status.
 
-	The Raven Channel itself is deliberately retained so the conversation remains
-	visible in the channel/list history.
-	"""
-	if doc.get("custom_ticket_status") not in TECHNICIAN_INACTIVE_TICKET_STATES:
-		return
+    Does not unassign technicians, modify ToDo records, or delete the channel.
+    """
 
-	channel_id = doc.get("custom_raven_channel")
-	if not channel_id or not frappe.db.exists("Raven Channel", channel_id):
-		return
+    if (
+        doc.get("custom_ticket_status")
+        not in TECHNICIAN_INACTIVE_TICKET_STATES
+    ):
+        return
 
-	# Find the Sales Order's ToDo assignments; only remove the assigned users,
-	# not the customer bot or admin, and do not delete the channel.
-	assignments = frappe.get_all(
-		"ToDo",
-		filters={
-			"reference_type": "Sales Order",
-			"reference_name": doc.name,
-			"allocated_to": ["is", "set"],
-			"status": ["!=", "Cancelled"],
-		},
-		fields=["allocated_to"],
-	)
-	for assignment in assignments:
-		user_id = assignment.get("allocated_to")
-		if not user_id or not frappe.db.exists("Raven User", user_id):
-			continue
-		if not frappe.db.exists(
-			"Raven Channel Member",
-			{"channel_id": channel_id, "user_id": user_id},
-		):
-			continue
+    channel_id = doc.get("custom_raven_channel")
 
-		try:
-			with as_user():
-				frappe.call(
-					"raven.api.raven_channel_member.remove_channel_member",
-					user_id=user_id,
-					channel_id=channel_id,
-				)
-			frappe.logger("spectrum_ps").info(
-				"Removed technician %s from completed Sales Order channel %s",
-				user_id,
-				channel_id,
-			)
-		except Exception:
-			frappe.log_error(
-				frappe.get_traceback(),
-				f"Failed removing technician {user_id} from completed channel {channel_id}",
-			)
+    if not channel_id or not frappe.db.exists("Raven Channel", channel_id):
+        return
 
+    assignments = frappe.get_all(
+        "ToDo",
+        filters={
+            "reference_type": "Sales Order",
+            "reference_name": doc.name,
+            "allocated_to": ["is", "set"],
+            "status": ["!=", "Cancelled"],
+        },
+        fields=["allocated_to"],
+    )
+
+    # Only remove users explicitly registered as technicians.
+    for assignment in assignments:
+        user_id = assignment.get("allocated_to")
+
+        if not user_id:
+            continue
+
+        is_technician = frappe.db.exists(
+            "Technician", {"user": user_id}
+        )
+
+        if not is_technician:
+            continue
+
+        if not frappe.db.exists("Raven User", user_id):
+            continue
+
+        if not frappe.db.exists(
+            "Raven Channel Member",
+            {"channel_id": channel_id, "user_id": user_id},
+        ):
+            continue
+
+        try:
+            with as_user():
+                frappe.call(
+                    "raven.api.raven_channel_member.remove_channel_member",
+                    user_id=user_id,
+                    channel_id=channel_id,
+                )
+
+            frappe.logger("spectrum_ps").info(
+                "Removed technician %s from inactive Sales Order channel %s",
+                user_id,
+                channel_id,
+            )
+
+        except Exception:
+            frappe.log_error(
+                frappe.get_traceback(),
+                f"Failed removing technician {user_id} "
+                f"from channel {channel_id}",
+            )
 
 
 def update_sales_order(doc, method=None):
-	"""Sales Order saved: Compare with the previous saved state and route to the right handler."""
+    """Sales Order saved: Compare with the previous saved state and route to the right handler."""
 
-	# 1. Trigger technician removal based on the inactive status configuration
-	remove_technicians_on_complete(doc, method)
+    before = doc.get_doc_before_save()
 
-	before = doc.get_doc_before_save()
+    old_status = (
+        before.get("custom_ticket_status") if before else None
+    )
+    new_status = doc.get("custom_ticket_status")
 
-	old_status = before.get("custom_ticket_status") if before else None
+    # Remove channel membership on transition into an inactive state.
+    if (
+        new_status in TECHNICIAN_INACTIVE_TICKET_STATES
+        and old_status != new_status
+    ):
+        remove_technicians_on_complete(doc, method)
 
-	new_status = doc.get("custom_ticket_status")
+    # Preserve existing workflow notification behavior.
+    if old_status == new_status:
+        return
 
-	if old_status == new_status:
-		return
+    if new_status == "Completed":
+        handle_completed(doc)
 
-	if new_status == "Completed":
-		handle_completed(doc)
-	elif new_status == "Accepted":
-		handle_accepted(doc)
-
-
-def remove_technicians_on_complete(doc, method=None):
-	"""Remove assigned technicians from the Raven chat when an order is completed.
-
-	The Raven Channel itself is deliberately retained so the conversation remains
-	visible in the channel/list history.
-	"""
-	restricted_statuses =  {"Completed", "Paid"}
-	if doc.get("custom_ticket_status") not in restricted_statuses:
-		return
-
-	channel_id = doc.get("custom_raven_channel")
-	if not channel_id or not frappe.db.exists("Raven Channel", channel_id):
-		return
-
-	# Find the Sales Order's ToDo assignments; only remove the assigned users,
-	# not the customer bot or admin, and do not delete the channel.
-	assignments = frappe.get_all(
-		"ToDo",
-		filters={
-			"reference_type": "Sales Order",
-			"reference_name": doc.name,
-			"allocated_to": ["is", "set"],
-			"status": ["!=", "Cancelled"],
-		},
-		fields=["allocated_to"],
-	)
-	for assignment in assignments:
-		user_id = assignment.get("allocated_to")
-		if not user_id or not frappe.db.exists("Raven User", user_id):
-			continue
-		if not frappe.db.exists(
-			"Raven Channel Member",
-			{"channel_id": channel_id, "user_id": user_id},
-		):
-			continue
-
-		try:
-			with as_user():
-				frappe.call(
-					"raven.api.raven_channel_member.remove_channel_member",
-					user_id=user_id,
-					channel_id=channel_id,
-				)
-			frappe.logger("spectrum_ps").info(
-					"Removed technician %s from completed Sales Order channel %s",
-					user_id,
-					channel_id,
-				)
-		except Exception:
-			frappe.log_error(
-				frappe.get_traceback(),
-				f"Failed removing technician {user_id} from completed channel {channel_id}",
-			)
+    elif new_status == "Accepted":
+        handle_accepted(doc)
