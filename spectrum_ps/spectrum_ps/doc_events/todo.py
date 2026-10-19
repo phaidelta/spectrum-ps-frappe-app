@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 
 from spectrum_ps.config import TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY
+from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
 from spectrum_ps.context_managers import as_user
 
 
@@ -42,12 +43,10 @@ def add_assigned_user(doc, method=None):
 	):
 		frappe.log(f"Updating Sales Order `{sales_order.name}` ticket status to Assigned")
 		sales_order.custom_ticket_status = "Assigned"
-		# TODO: Get the system manager user from config. This defaults to Administrator
-		with as_user():
+		with as_user(SYSTEM_MANAGER_USER):
 			sales_order.save(ignore_permissions=True)
 
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		frappe.call(
 			"raven.api.raven_channel_member.add_channel_members",
 			channel_id=sales_order.custom_raven_channel,
@@ -77,8 +76,7 @@ def remove_assigned_user(doc, method=None):
 		frappe.log(f"Sales Order `{sales_order.name}` has no Raven Channel linked; nothing to remove")
 		return
 
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		frappe.call(
 			"raven.api.raven_channel_member.remove_channel_member",
 			user_id=assigned_to,

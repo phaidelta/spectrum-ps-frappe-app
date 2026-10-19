@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 
+from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
 from spectrum_ps.context_managers import as_user
 
 
@@ -14,8 +15,7 @@ def create_customer_bot(doc, method):
 	bot_id = _get_bot_id(doc)
 	frappe.log(f"Ensuring Raven Bot `{bot_id}` exists for Customer `{doc.name}`")
 
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		if frappe.db.exists("Raven Bot", {"name": bot_id}):
 			if doc.custom_raven_bot != bot_id:
 				frappe.log(f"Linking existing Raven Bot `{bot_id}` to Customer `{doc.name}`")
@@ -43,8 +43,7 @@ def create_customer_bot(doc, method):
 def sync_customer_raven_user(doc, method=None):
 	"""Keep a Customer's Raven User name aligned after Raven updates its bot."""
 
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		customer = frappe.db.get_value(
 			"Customer",
 			{"custom_raven_bot": doc.name},
@@ -76,8 +75,7 @@ def remove_customer_bot(doc, method):
 
 	bot_id = doc.custom_raven_bot
 
-	# TODO: Get the system manager user from config. This defaults to Administrator
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		if frappe.db.exists("Raven Bot", {"name": bot_id}):
 			frappe.log(f"Removing Raven Bot `{bot_id}` for deleted Customer `{doc.name}`")
 			raven_bot = frappe.get_doc("Raven Bot", {"name": bot_id})

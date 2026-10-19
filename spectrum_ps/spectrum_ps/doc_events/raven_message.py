@@ -3,6 +3,7 @@ import re
 
 import frappe
 
+from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
 from spectrum_ps.config.twilio_templates import TEMPLATE_REACH_OUT_MESSAGE
 from spectrum_ps.context_managers import as_user
 from spectrum_ps.integrations.twilio import send_whatsapp_message, send_whatsapp_template_message
@@ -43,7 +44,7 @@ def send_outbound_whatsapp(doc, method=None):
 
 	customer = frappe.get_doc("Customer", sales_order.customer)
 	customer.custom_active_sales_order = sales_order.name
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		customer.save(ignore_permissions=True)
 
 	template = {
