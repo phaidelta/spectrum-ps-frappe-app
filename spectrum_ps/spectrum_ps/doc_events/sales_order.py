@@ -158,32 +158,36 @@ def handle_sales_order_create(doc, method=None):
 		doc.custom_raven_channel = raven_channel.name
 		doc.save(ignore_permissions=True)
 
-	# Add administrator to the channel
-	# TODO: Add from a preset list or using some heuristic
-	ADMIN_USER = "Administrator"
-	if not frappe.db.exists(
-		"Raven Channel Member", {"channel_id": raven_channel.name, "user_id": ADMIN_USER}
-	):
-		frappe.log(
-			f"Adding user `{ADMIN_USER}` for Sales Order `{doc.name}` to raven channel `{raven_channel.name}`"
+	settings = frappe.get_single("Spectrum PS Ticket Settings")
+	users_to_add = {user.user for user in settings.users_to_add_to_chat_channels if user.user}
+	if settings.add_all_administrators:
+		users_to_add.update(
+			frappe.get_all(
+				"Has Role",
+				filters={"role": "Administrator", "parenttype": "User"},
+				pluck="parent",
+			)
 		)
 
+	existing_members = set(
+		frappe.get_all(
+			"Raven Channel Member",
+			filters={"channel_id": raven_channel.name},
+			pluck="user_id",
+		)
+	)
+	members_to_add = sorted(users_to_add - existing_members)
+	if members_to_add:
+		frappe.log(
+			f"Adding users {members_to_add} for Sales Order `{doc.name}` "
+			f"to raven channel `{raven_channel.name}`"
+		)
 		with as_user(SYSTEM_MANAGER_USER):
 			frappe.call(
 				"raven.api.raven_channel_member.add_channel_members",
 				channel_id=raven_channel.name,
-				members=[ADMIN_USER],
+				members=members_to_add,
 			)
-
-	# admins = frappe.conf.get("spectrum_ps_raven_admins") or [doc.owner]
-	# members = [u for u in admins if frappe.db.exists("Raven User", u)]
-	# if members:
-	# 	with as_user(SYSTEM_MANAGER_USER):
-	# 		frappe.call(
-	# 			"raven.api.raven_channel_member.add_channel_members",
-	# 			channel_id=raven_channel.name,
-	# 			members=members,
-	# 		)
 
 	if not doc.customer:
 		frappe.log(f"Sales Order `{doc.name}` has no Customer linked")
