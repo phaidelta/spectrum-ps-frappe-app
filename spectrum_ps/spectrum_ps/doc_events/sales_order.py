@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from raven.api.raven_channel_member import remove_channel_member
+from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 
 from spectrum_ps.config import (
 	TEMPLAET_ORDER_COMPLETE,
@@ -11,7 +11,6 @@ from spectrum_ps.config.logic_config import TECHNICIAN_INACTIVE_TICKET_STATES
 from spectrum_ps.context_managers import as_user
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
-from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 
 
 def _get_customer_name(doc):
@@ -32,8 +31,9 @@ def handle_completed(doc):
 		},
 	)
 
+
 def handle_assignment(doc):
-	frappe.log(f"Sending Notification to send assigned Technician")
+	frappe.log("Sending Notification to send assigned Technician")
 	technician = doc.flags.get("assigned_to")
 
 	if not technician:
@@ -51,14 +51,13 @@ def handle_assignment(doc):
 	enqueue_create_notification(
 		[technician],
 		{
-			"type":"Alert",
-			"subject":msg,
-			"document_type":"Sales Order",
-			"document_name":doc.name,
-			"from_user":frappe.session.user,
+			"type": "Alert",
+			"subject": msg,
+			"document_type": "Sales Order",
+			"document_name": doc.name,
+			"from_user": frappe.session.user,
 		},
-		)
-
+	)
 
 
 def handle_accepted(doc):
