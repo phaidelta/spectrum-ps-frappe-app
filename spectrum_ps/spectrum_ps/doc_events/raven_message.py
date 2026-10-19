@@ -2,6 +2,7 @@ import html
 import re
 
 import frappe
+from frappe import _
 
 from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
 from spectrum_ps.config.twilio_templates import TEMPLATE_REACH_OUT_MESSAGE
@@ -18,6 +19,37 @@ _TAG_RE = re.compile(r"<[^>]*>")
 def _clean(value: str) -> str:
 	"""Raven stores message text as HTML; strip it down to plain text."""
 	return html.unescape(_TAG_RE.sub("", value or "")).strip()
+
+
+def _get_sales_order_and_customer(doc):
+	sales_order = get_sales_order_by_raven_channel(doc.channel_id)
+	if not sales_order:
+		return None, None
+
+	customer = frappe.get_doc("Customer", sales_order.customer)
+	active_sales_order = customer.custom_active_sales_order
+	if active_sales_order and active_sales_order != sales_order.name:
+		frappe.throw(
+			_("Cannot send a message in Sales Order {0}; Customer {1} has active Sales Order {2}.").format(
+				sales_order.name, customer.name, active_sales_order
+			)
+		)
+
+	return sales_order, customer
+
+
+def validate_outbound_whatsapp(doc, method=None):
+	"""Prevent messages in a non-active Sales Order channel from being created."""
+	if frappe.flags.get("in_whatsapp_webhook"):
+		return
+	if doc.get("is_bot_message") or doc.get("bot"):
+		return
+	if doc.get("message_type") not in (None, "Text"):
+		return
+	if not doc.channel_id or not _clean(doc.get("text")):
+		return
+
+	_get_sales_order_and_customer(doc)
 
 
 def send_outbound_whatsapp(doc, method=None):
@@ -38,14 +70,14 @@ def send_outbound_whatsapp(doc, method=None):
 	sender_name = frappe.get_doc("User", doc.owner)
 	body_ = "*{sender}*:\n{body}".format(sender=sender_name.first_name.strip(), body=body)
 
-	sales_order = get_sales_order_by_raven_channel(doc.channel_id)
+	sales_order, customer = _get_sales_order_and_customer(doc)
 	if not sales_order:
 		return  # not a Sales Order channel, ignore
 
-	customer = frappe.get_doc("Customer", sales_order.customer)
-	customer.custom_active_sales_order = sales_order.name
-	with as_user(SYSTEM_MANAGER_USER):
-		customer.save(ignore_permissions=True)
+	if not customer.custom_active_sales_order:
+		customer.custom_active_sales_order = sales_order.name
+		with as_user(SYSTEM_MANAGER_USER):
+			customer.save(ignore_permissions=True)
 
 	template = {
 		"content_sid": TEMPLATE_REACH_OUT_MESSAGE,

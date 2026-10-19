@@ -179,7 +179,8 @@ doc_events = {
 		"on_submit": "spectrum_ps.spectrum_ps.doc_events.sales_invoice.on_sales_invoice_submit"
 	},
 	"Raven Message": {
-		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp"
+		"before_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.validate_outbound_whatsapp",
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp",
 	},
 }
 
