@@ -43,7 +43,7 @@ def send_outbound_whatsapp(doc, method=None):
 
 	customer = frappe.get_doc("Customer", sales_order.customer)
 	customer.custom_active_sales_order = sales_order.name
-	with as_user():
+	with as_user(SYSTEM_MANAGER_USER):
 		customer.save(ignore_permissions=True)
 
 	template = {

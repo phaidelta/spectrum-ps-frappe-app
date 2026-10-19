@@ -283,7 +283,7 @@ def remove_technicians_on_complete(doc, method=None):
 		try:
 			from raven.api.raven_channel_member import remove_channel_member
 
-			with as_user():
+			with as_user(SYSTEM_MANAGER_USER):
 				remove_channel_member(
 					user_id=user_id,
 					channel_id=channel_id,
