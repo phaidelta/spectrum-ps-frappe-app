@@ -3,7 +3,7 @@ from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 
 from spectrum_ps.config import (
-	TEMPLAET_ORDER_COMPLETE,
+	TEMPLATE_ORDER_COMPLETE,
 	TEMPLATE_ORDER_GREETINGS,
 	TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
 )
@@ -23,7 +23,7 @@ def handle_completed(doc):
 	enqueue_outbound_sales_order_whatsapp_template(
 		doc,
 		doc.customer,
-		template_id=TEMPLAET_ORDER_COMPLETE,
+		template_id=TEMPLATE_ORDER_COMPLETE,
 		message_id=f"{doc.name}-Sale-Order-Completion-Message",
 		content_variables={
 			"customer_name": _get_customer_name(doc),
