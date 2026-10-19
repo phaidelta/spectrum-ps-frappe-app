@@ -9,6 +9,7 @@ from spectrum_ps.config import (
 from spectrum_ps.context_managers import as_user
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
+from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 
 
 def _get_customer_name(doc):
@@ -28,6 +29,34 @@ def handle_completed(doc):
 			"order_id": doc.name,
 		},
 	)
+
+def handle_assignment(doc):
+	frappe.log(f"Sending Notification to send assigned Technician")
+	technician = doc.flags.get("assigned_to")
+
+	if not technician:
+		assignees = frappe.parse_json(frappe.db.get_value("Sales Order", doc.name, "_assign") or "[]")
+		technician = assignees[0] if assignees else None
+
+	if not technician:
+		frappe.log(f"Sales Order `{doc.name}` is Assigned but has no Assignee")
+		return
+
+	priority = doc.get("custom_priority") or "Medium"
+	msg = f"Ticket {doc.name} has been assigned to you. Priority - {priority}"
+	frappe.log(f"Sending Assignment notification for {doc.name} to {technician}")
+
+	enqueue_create_notification(
+		[technician],
+		{
+			"type":"Alert",
+			"subject":msg,
+			"document_type":"Sales Order",
+			"document_name":doc.name,
+			"from_user":frappe.session.user,
+		},
+		)
+
 
 
 def handle_accepted(doc):
@@ -229,5 +258,7 @@ def update_sales_order(doc, method=None):
 
 	if new_status == "Completed":
 		handle_completed(doc)
+	if new_status == "Assigned":
+		handle_assignment(doc)
 	elif new_status == "Accepted":
 		handle_accepted(doc)
