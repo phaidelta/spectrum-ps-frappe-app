@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from raven.api.raven_channel_member import remove_channel_member
+from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 
 from spectrum_ps.config import (
 	TEMPLAET_ORDER_COMPLETE,
@@ -28,6 +28,34 @@ def handle_completed(doc):
 		content_variables={
 			"customer_name": _get_customer_name(doc),
 			"order_id": doc.name,
+		},
+	)
+
+
+def handle_assignment(doc):
+	frappe.log("Sending Notification to send assigned Technician")
+	technician = doc.flags.get("assigned_to")
+
+	if not technician:
+		assignees = frappe.parse_json(frappe.db.get_value("Sales Order", doc.name, "_assign") or "[]")
+		technician = assignees[0] if assignees else None
+
+	if not technician:
+		frappe.log(f"Sales Order `{doc.name}` is Assigned but has no Assignee")
+		return
+
+	priority = doc.get("custom_priority") or "Medium"
+	msg = f"Ticket {doc.name} has been assigned to you. Priority - {priority}"
+	frappe.log(f"Sending Assignment notification for {doc.name} to {technician}")
+
+	enqueue_create_notification(
+		[technician],
+		{
+			"type": "Alert",
+			"subject": msg,
+			"document_type": "Sales Order",
+			"document_name": doc.name,
+			"from_user": frappe.session.user,
 		},
 	)
 
@@ -298,6 +326,8 @@ def update_sales_order(doc, method=None):
 
 	if new_status == "Completed":
 		handle_completed(doc)
+	if new_status == "Assigned":
+		handle_assignment(doc)
 
 	elif new_status == "Accepted":
 		handle_accepted(doc)
