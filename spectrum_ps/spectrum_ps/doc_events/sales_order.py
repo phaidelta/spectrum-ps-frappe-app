@@ -199,6 +199,29 @@ def handle_sales_order_create(doc, method=None):
 	frappe.log(f"Looking up Customer `{doc.customer}` for Sales Order `{doc.name}`")
 	customer = frappe.get_cached_doc("Customer", doc.customer)
 
+	active_sales_order = customer.custom_active_sales_order
+	if active_sales_order and active_sales_order != doc.name:
+		active_order = frappe.db.get_value(
+			"Sales Order",
+			active_sales_order,
+			["docstatus", "custom_ticket_status"],
+			as_dict=True,
+		)
+		if (
+			active_order
+			and active_order.docstatus != 2
+			and active_order.custom_ticket_status not in {"Paid", "Cancelled"}
+		):
+			frappe.log(f"Keeping active Sales Order `{active_sales_order}` for Customer `{customer.name}`")
+		else:
+			customer.custom_active_sales_order = doc.name
+			with as_user(SYSTEM_MANAGER_USER):
+				customer.save(ignore_permissions=True)
+	elif not active_sales_order:
+		customer.custom_active_sales_order = doc.name
+		with as_user(SYSTEM_MANAGER_USER):
+			customer.save(ignore_permissions=True)
+
 	# Get Raven Bot associated with the customer
 	with as_user(SYSTEM_MANAGER_USER):
 		bot = ensure_customer_has_bot(customer)
