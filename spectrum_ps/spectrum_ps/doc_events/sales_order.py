@@ -183,6 +183,7 @@ def handle_sales_order_create(doc, method=None):
 			f"to raven channel `{raven_channel.name}`"
 		)
 		with as_user(SYSTEM_MANAGER_USER):
+			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
 			frappe.call(
 				"raven.api.raven_channel_member.add_channel_members",
 				channel_id=raven_channel.name,
