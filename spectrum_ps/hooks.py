@@ -206,8 +206,17 @@ fixtures = [
 		"dt": "Role",
 		"filters": [["name", "in", ["Technician", "Spectrum PS User"]]],
 	},
+	{
+		"dt": "Notification",
+		"filters": [
+			[
+				"name",
+				"in",
+				["work resolved", "In progress", "Ticket Created"],
+			]
+		],
+	},
 ]
-
 
 # Scheduled Tasks
 # ---------------
