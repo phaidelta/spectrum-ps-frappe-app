@@ -348,7 +348,7 @@ def update_sales_order(doc, method=None):
 
 	if new_status == "Completed":
 		handle_completed(doc)
-	if new_status == "Assigned":
+	elif new_status == "Assigned":
 		handle_assignment(doc)
 
 	elif new_status == "Accepted":
