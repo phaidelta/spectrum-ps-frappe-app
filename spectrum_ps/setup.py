@@ -3,7 +3,7 @@ from frappe.custom.doctype.property_setter.property_setter import make_property_
 
 from permissions import setup_roles_and_permissions
 
-RAVEN_WORKSPACE_NAME = "Customer Comunication"
+RAVEN_WORKSPACE_NAME = "Customer communications"
 SALES_ORDER_SERIES = "TKT-.YYYY.MM.-.###"
 
 
