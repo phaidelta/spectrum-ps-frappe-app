@@ -212,7 +212,11 @@ fixtures = [
 			[
 				"name",
 				"in",
-                ["Admin Notification - Ticket Created","Admin Notification - Work in Progress","Admin Notification - Work Resolved",],
+				[
+					"Admin Notification - Ticket Created",
+					"Admin Notification - Work in Progress",
+					"Admin Notification - Work Resolved",
+				],
 			]
 		],
 	},
