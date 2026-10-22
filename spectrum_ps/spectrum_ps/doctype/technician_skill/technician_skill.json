@@ -1,11 +1,9 @@
 {
  "actions": [],
- "allow_bulk_edit": 1,
  "allow_rename": 1,
- "creation": "2026-09-21 18:15:39.514582",
- "custom": 1,
+ "autoname": "autoincrement",
+ "creation": "2026-10-22 00:00:00.000000",
  "doctype": "DocType",
- "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "section_break_1xz8",
@@ -17,45 +15,81 @@
  "fields": [
   {
    "fieldname": "section_break_1xz8",
-   "fieldtype": "Section Break"
+   "label": "section_break_1xz8",
+   "fieldtype": "Section Break",
+   "options": null,
+   "reqd": 0,
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "hidden": 0,
+   "columns": 0,
+   "description": null
   },
   {
    "fieldname": "skill_name",
-   "fieldtype": "Link",
    "label": "skill_name",
-   "options": "Skill"
+   "fieldtype": "Link",
+   "options": "Skill",
+   "reqd": 0,
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "hidden": 0,
+   "columns": 0,
+   "description": null
   },
   {
    "fieldname": "proficiency",
-   "fieldtype": "Select",
    "label": "proficiency",
+   "fieldtype": "Select",
    "options": "Beginner\nIntermediate\nAdvanced\nExpert",
-   "default": "Intermediate"
+   "reqd": 0,
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "hidden": 0,
+   "columns": 0,
+   "description": null
   },
   {
    "fieldname": "experience",
+   "label": "experience",
    "fieldtype": "Float",
-   "label": "experience"
+   "options": null,
+   "reqd": 0,
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "hidden": 0,
+   "columns": 0,
+   "description": null
   },
   {
-   "default": "0",
    "fieldname": "is_primary",
+   "label": "is_primary",
    "fieldtype": "Check",
-   "label": "is_primary"
+   "options": null,
+   "reqd": 0,
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "hidden": 0,
+   "columns": 0,
+   "description": null
   }
  ],
- "grid_page_length": 50,
  "index_web_pages_for_search": 1,
- "istable": 1,
+ "is_submittable": 0,
+ "is_child_table": 1,
+ "issingle": 0,
  "links": [],
- "modified": "2026-09-21 18:19:29.733192",
+ "modified": "2026-10-22 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "spectrum_ps",
  "name": "Technician Skill",
  "owner": "Administrator",
  "permissions": [],
- "row_format": "Dynamic",
- "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": []
