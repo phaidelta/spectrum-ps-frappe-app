@@ -1,6 +1,6 @@
 import frappe
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
-from permissions import setup_roles_and_permissions
+from spectrum_ps.permissions import setup_roles_and_permissions
 
 RAVEN_WORKSPACE_NAME = "Customer communications"
 SALES_ORDER_SERIES = "TKT-.YYYY.MM.-.###"
