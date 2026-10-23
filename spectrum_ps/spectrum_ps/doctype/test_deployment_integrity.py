@@ -4,10 +4,57 @@ from pathlib import Path
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from spectrum_ps import hooks
+from spectrum_ps import hooks, setup
 
 
 class TestDeploymentIntegrity(IntegrationTestCase):
+	def test_ground_truth_requirements_exist_in_source(self):
+		app_path = Path(frappe.get_app_path("spectrum_ps"))
+		ground_truth = json.loads((app_path / "deployment_ground_truth.json").read_text())
+		doctype_path = app_path / "spectrum_ps" / "doctype"
+		source_doctypes = {json.loads(path.read_text())["name"] for path in doctype_path.glob("*/*.json")}
+
+		missing_doctypes = sorted(set(ground_truth["app_doctypes"]) - source_doctypes)
+		self.assertEqual(
+			missing_doctypes,
+			[],
+			f"Required app DocTypes are missing from spectrum_ps/doctype: {', '.join(missing_doctypes)}",
+		)
+
+		fixtures_path = app_path / "fixtures"
+		custom_fields = json.loads((fixtures_path / "custom_field.json").read_text())
+		source_custom_fields = {(field["dt"], field["fieldname"]) for field in custom_fields}
+		missing_custom_fields = sorted(
+			f"{doctype}.{fieldname}"
+			for doctype, fieldnames in ground_truth["custom_fields"].items()
+			for fieldname in fieldnames
+			if (doctype, fieldname) not in source_custom_fields
+		)
+		self.assertEqual(
+			missing_custom_fields,
+			[],
+			f"Required custom fields are missing from fixtures/custom_field.json: {', '.join(missing_custom_fields)}",
+		)
+
+		missing_records = []
+		for doctype, names in ground_truth["fixture_records"].items():
+			fixture_path = fixtures_path / f"{doctype.lower().replace(' ', '_')}.json"
+			records = json.loads(fixture_path.read_text()) if fixture_path.exists() else []
+			source_names = {record["name"] for record in records}
+			missing_records.extend(f"{doctype}: {name}" for name in names if name not in source_names)
+		self.assertEqual(
+			missing_records,
+			[],
+			f"Required fixture records are missing from source: {', '.join(missing_records)}",
+		)
+
+		for doctype, requirement in ground_truth["setup_records"].items():
+			self.assertEqual(
+				getattr(setup, requirement["constant"], None),
+				requirement["value"],
+				f"Required setup record {doctype} {requirement['value']} is missing from setup.py",
+			)
+
 	def test_app_doctypes_are_installed(self):
 		doctype_path = Path(frappe.get_app_path("spectrum_ps")) / "spectrum_ps" / "doctype"
 		doctype_definitions = [json.loads(path.read_text()) for path in doctype_path.glob("*/*.json")]
