@@ -239,7 +239,7 @@
         "is_standard": 0,
         "module": null,
         "slack_channel": null,
-        "subject": "Invoice {{ doc.name }}{% if doc.custom_sales_order %} for ticket {{ doc.custom_sales_order }}{% endif %} from Spectrum property services is available",
+        "subject": "Invoice {{ doc.name }}{% if doc.custom_sales_order %} for ticket {{ doc.custom_sales_order }}{% endif %} from Spectrum PS is available",
         "date_changed": null,
         "datetime_changed": null,
         "days_in_advance": 0,
