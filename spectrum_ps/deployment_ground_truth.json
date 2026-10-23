@@ -1,0 +1,70 @@
+{
+  "description": "Ground truth for app-owned, source-controlled deployment assets. Add requirements here when fixtures or setup code are updated; manually configured site data must first be added to a fixture or setup code.",
+  "app_doctypes": [
+    "Customer Inquiry",
+    "Customer Message Inbound Queue",
+    "Customer Message Outbound Queue",
+    "Customer Order Request",
+    "Sales Order Linked Customers",
+    "Skill",
+    "Spectrum PS Ticket Settings",
+    "Technician",
+    "Technician Skill",
+    "Technician Type",
+    "Users to auto add in Raven Channel"
+  ],
+  "custom_fields": {
+    "Address": [
+      "custom_buildyear",
+      "custom_has_basement",
+      "custom_lot_number",
+      "custom_sqft"
+    ],
+    "Customer": [
+      "custom_active_sales_order",
+      "custom_disabled",
+      "custom_rating",
+      "custom_raven_bot",
+      "rating"
+    ],
+    "Item": [
+      "skill_required"
+    ],
+    "Sales Invoice": [
+      "custom_sales_order"
+    ],
+    "Sales Order": [
+      "custom_notes",
+      "custom_other_linked_customers",
+      "custom_priority",
+      "custom_raven_channel",
+      "custom_ticket_status",
+      "custom_ticket_type"
+    ],
+    "Sales Order Item": [
+      "custom_assigned_technician"
+    ]
+  },
+  "fixture_records": {
+    "Notification": [
+      "Admin Notification - Ticket Created",
+      "Admin Notification - Work in Progress",
+      "Admin Notification - Work Resolved",
+      "Payment confirmation",
+      "Sales invoice notification",
+      "Sales Order Aging",
+      "Sales Order Completed",
+      "Sales Order Created"
+    ],
+    "Role": [
+      "Spectrum PS User",
+      "Technician"
+    ]
+  },
+  "setup_records": {
+    "Raven Workspace": {
+      "constant": "RAVEN_WORKSPACE_NAME",
+      "value": "Customer communications"
+    }
+  }
+}
