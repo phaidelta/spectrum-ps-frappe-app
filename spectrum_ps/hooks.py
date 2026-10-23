@@ -111,7 +111,7 @@ app_license = "mit"
 # before_app_uninstall = "spectrum_ps.utils.before_app_uninstall"
 # after_app_uninstall = "spectrum_ps.utils.after_app_uninstall"
 
-after_migrate = "spectrum_ps.permissions.setup_roles_and_permissions"
+after_migrate = "spectrum_ps.setup.after_migrate"
 
 # Build
 # ------------------
@@ -181,6 +181,10 @@ doc_events = {
 	"Raven Message": {
 		"before_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.validate_outbound_whatsapp",
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp",
+	},
+	"Raven User": {
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_user.add_to_workspace",
+		"on_trash": "spectrum_ps.spectrum_ps.doc_events.raven_user.remove_from_workspace",
 	},
 }
 
