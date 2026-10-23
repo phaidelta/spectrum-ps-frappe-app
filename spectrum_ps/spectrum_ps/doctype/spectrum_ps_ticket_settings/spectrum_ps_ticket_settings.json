@@ -1,0 +1,84 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": null,
+ "creation": "2026-10-22 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "auto_add_to_sales_order_channel_section",
+  "add_all_administrators",
+  "users_to_add_to_chat_channels"
+ ],
+ "fields": [
+  {
+   "fieldname": "auto_add_to_sales_order_channel_section",
+   "label": "Auto add to Sales Order channel",
+   "fieldtype": "Section Break",
+   "options": null,
+   "reqd": 0,
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "hidden": 0,
+   "columns": 0,
+   "description": null
+  },
+  {
+   "fieldname": "add_all_administrators",
+   "label": "Add all Administrators",
+   "fieldtype": "Check",
+   "options": null,
+   "reqd": 0,
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "hidden": 0,
+   "columns": 0,
+   "description": null
+  },
+  {
+   "fieldname": "users_to_add_to_chat_channels",
+   "label": "Users to add to Chat Channels",
+   "fieldtype": "Table",
+   "options": "Users to auto add in Raven Channel",
+   "reqd": 0,
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "hidden": 0,
+   "columns": 0,
+   "description": null
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 0,
+ "is_child_table": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "spectrum_ps",
+ "name": "Spectrum PS Ticket Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
