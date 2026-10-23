@@ -182,6 +182,10 @@ doc_events = {
 		"before_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.validate_outbound_whatsapp",
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp",
 	},
+	"Raven User": {
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_user.add_to_workspace",
+		"on_trash": "spectrum_ps.spectrum_ps.doc_events.raven_user.remove_from_workspace",
+	},
 }
 
 
