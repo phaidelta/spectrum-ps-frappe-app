@@ -220,6 +220,11 @@ fixtures = [
 					"Admin Notification - Ticket Created",
 					"Admin Notification - Work in Progress",
 					"Admin Notification - Work Resolved",
+					"Sales Order Aging",
+					"Payment confirmation",
+					"Sales invoice notification",
+					"Sales Order Completed",
+					"Sales Order Created",
 				],
 			]
 		],
