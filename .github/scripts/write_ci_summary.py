@@ -78,6 +78,107 @@ def deployment_value(value):
 	return "Yes" if value is True else "No" if value is False else "Unknown"
 
 
+def deployment_count(values, total):
+	if values is None:
+		return f"Unknown / {total}", "Unknown"
+	count = sum(values)
+	percentage = count / total * 100 if total else 100
+	return f"{count} / {total}", f"{percentage:.1f}%"
+
+
+def render_deployment_counts(root, installed):
+	ground_truth = read_json(root / "spectrum_ps" / "deployment_ground_truth.json", {})
+
+	required_doctypes = (
+		set(ground_truth.get("app_doctypes", []))
+		| set(ground_truth.get("integration_doctypes", []))
+		| set(ground_truth.get("custom_fields", {}))
+		| set(ground_truth.get("fixture_records", {}))
+		| set(ground_truth.get("setup_records", {}))
+	)
+	source_types = source_doctypes(root, ground_truth)
+	deployed_types = set(installed.get("doctypes", [])) if installed is not None else None
+
+	custom_field_path = root / "spectrum_ps" / "fixtures" / "custom_field.json"
+	source_fields = {(field.get("dt"), field.get("fieldname")) for field in read_json(custom_field_path, [])}
+	deployed_fields = {
+		(field.get("doctype"), field.get("fieldname")): field.get("installed")
+		for field in (installed or {}).get("custom_fields", [])
+	}
+	required_fields = {
+		(doctype, fieldname)
+		for doctype, fieldnames in ground_truth.get("custom_fields", {}).items()
+		for fieldname in fieldnames
+	}
+
+	fixtures_dir = root / "spectrum_ps" / "fixtures"
+	fixture_source = {}
+	record_presence = []
+	for doctype, names in ground_truth.get("fixture_records", {}).items():
+		path = fixtures_dir / f"{doctype.lower().replace(' ', '_')}.json"
+		fixture_source[doctype] = {record.get("name") for record in read_json(path, []) if record.get("name")}
+		for name in names:
+			record_presence.append(
+				(
+					name in fixture_source[doctype],
+					(installed or {}).get("fixture_records", {}).get(doctype, {}).get(name),
+				)
+			)
+
+	source_setup = (root / "spectrum_ps" / "setup.py").read_text(errors="replace")
+	for doctype, record in ground_truth.get("setup_records", {}).items():
+		in_source = bool(
+			re.search(
+				rf"^\s*{re.escape(record['constant'])}\s*=\s*['\"]{re.escape(record['value'])}['\"]",
+				source_setup,
+				re.MULTILINE,
+			)
+		)
+		deployed = (installed or {}).get("setup_records", {}).get(doctype, {}).get(record["value"])
+		record_presence.append((in_source, deployed))
+
+	deployed_field_values = (
+		[deployed_fields.get(field) is True for field in required_fields] if installed is not None else None
+	)
+	deployed_record_values = (
+		[value is True for _, value in record_presence] if installed is not None else None
+	)
+	rows = [
+		(
+			"DocType Deployment",
+			deployment_count(
+				[doctype in source_types for doctype in required_doctypes], len(required_doctypes)
+			),
+			deployment_count(
+				[doctype in deployed_types for doctype in required_doctypes]
+				if deployed_types is not None
+				else None,
+				len(required_doctypes),
+			),
+		),
+		(
+			"Custom Field Deployment",
+			deployment_count([field in source_fields for field in required_fields], len(required_fields)),
+			deployment_count(deployed_field_values, len(required_fields)),
+		),
+		(
+			"Fixture and Setup Record",
+			deployment_count([source for source, _ in record_presence], len(record_presence)),
+			deployment_count(deployed_record_values, len(record_presence)),
+		),
+	]
+
+	lines = [
+		"| Deployment category | In source (count / total) | In source (%) | In deployment (count / total) | In deployment (%) |",
+		"|---|---:|---:|---:|---:|",
+	]
+	lines.extend(
+		f"| {category} | {source[0]} | {source[1]} | {deployment[0]} | {deployment[1]} |"
+		for category, source, deployment in rows
+	)
+	return "\n".join(lines)
+
+
 def render_doctype_table(root, installed):
 	ground_truth = read_json(root / "spectrum_ps" / "deployment_ground_truth.json", {})
 	source = source_doctypes(root, ground_truth)
@@ -266,7 +367,18 @@ def main():
 		lines.extend(["", "**Individual test results:**", "", "| Test | Result |", "|---|---|"])
 		lines.extend(f"| `{name}` | {result} |" for name, result in tests["individual_results"])
 
-	lines.extend(["", "## DocType Deployment Status", "", render_doctype_table(root, installed)])
+	lines.extend(
+		[
+			"",
+			"## Deployment Coverage",
+			"",
+			render_deployment_counts(root, installed),
+			"",
+			"## DocType Deployment Status",
+			"",
+			render_doctype_table(root, installed),
+		]
+	)
 	lines.extend(["", "## Custom Field Deployment Status", "", render_custom_field_table(root, installed)])
 	lines.extend(["", "## Fixture and Setup Record Status", "", render_record_table(root, installed), ""])
 	args.summary.write_text("\n".join(lines), encoding="utf-8")
