@@ -187,7 +187,7 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 
 			transition_fields = ("state", "action", "next_state", "allowed")
 			actual_transitions = {
-				tuple(row[fieldname] for fieldname in transition_fields) for row in workflow.transitions
+				(row.state, row.action, row.next_state, row.allowed) for row in workflow.transitions
 			}
 			expected_transitions = {
 				tuple(row[fieldname] for fieldname in transition_fields) for row in requirement["transitions"]
