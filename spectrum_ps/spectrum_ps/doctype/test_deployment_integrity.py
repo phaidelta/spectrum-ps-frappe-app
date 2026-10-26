@@ -69,9 +69,13 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 
 	def test_integration_doctypes_are_installed(self):
 		fixtures_path = Path(frappe.get_app_path("spectrum_ps")) / "fixtures"
+		ground_truth = json.loads(
+			(Path(frappe.get_app_path("spectrum_ps")) / "deployment_ground_truth.json").read_text()
+		)
 		custom_fields = json.loads((fixtures_path / "custom_field.json").read_text())
 		required_doctypes = (
 			set(hooks.doc_events)
+			| set(ground_truth["integration_doctypes"])
 			| {field["dt"] for field in custom_fields}
 			| {
 				"Raven Channel",
