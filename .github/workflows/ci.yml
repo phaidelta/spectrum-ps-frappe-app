@@ -87,6 +87,7 @@ jobs:
           bench init --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
 
       - name: Install
+        id: install
         working-directory: /home/runner/frappe-bench
         run: |
           bench get-app --branch version-16 erpnext
@@ -102,9 +103,43 @@ jobs:
           CI: 'Yes'
 
       - name: Run Tests
+        id: tests
         working-directory: /home/runner/frappe-bench
         run: |
+          set +e
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app spectrum_ps
+          setup_exit_code=$?
+          if [ "$setup_exit_code" -ne 0 ]; then
+            echo "exit_code=$setup_exit_code" >> "$GITHUB_OUTPUT"
+            exit "$setup_exit_code"
+          fi
+          bench --site test_site run-tests --app spectrum_ps 2>&1 | tee "$RUNNER_TEMP/test-output.log"
+          test_exit_code=${PIPESTATUS[0]}
+          echo "exit_code=$test_exit_code" >> "$GITHUB_OUTPUT"
+          exit "$test_exit_code"
         env:
           TYPE: server
+
+      - name: Collect deployed DocTypes
+        if: always()
+        working-directory: /home/runner/frappe-bench
+        run: |
+          if [ -f sites/test_site/site_config.json ]; then
+            bench --site test_site execute spectrum_ps.deployment_summary.write_deployment_state \
+              --kwargs "{\"output_path\":\"$RUNNER_TEMP/deployment-state.json\"}" \
+              || echo "Could not collect installed DocTypes"
+          else
+            echo "Test site was not created; skipping deployed DocType collection"
+          fi
+
+      - name: Write CI summary
+        if: always()
+        env:
+          TEST_EXIT_CODE: ${{ steps.tests.outputs.exit_code }}
+          TEST_STEP_OUTCOME: ${{ steps.tests.outcome }}
+          INSTALL_STEP_OUTCOME: ${{ steps.install.outcome }}
+        run: |
+          python .github/scripts/write_ci_summary.py \
+            --test-log "$RUNNER_TEMP/test-output.log" \
+            --installed-doctypes "$RUNNER_TEMP/deployment-state.json" \
+            --summary "$GITHUB_STEP_SUMMARY"

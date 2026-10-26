@@ -13,6 +13,22 @@
     "Technician Type",
     "Users to auto add in Raven Channel"
   ],
+  "integration_doctypes": [
+    "Customer",
+    "Item",
+    "Raven Bot",
+    "Raven Channel",
+    "Raven Channel Member",
+    "Raven Message",
+    "Raven User",
+    "Raven Workspace",
+    "Raven Workspace Member",
+    "Sales Invoice",
+    "Sales Order",
+    "Sales Order Item",
+    "ToDo",
+    "User"
+  ],
   "custom_fields": {
     "Address": [
       "custom_buildyear",
@@ -64,6 +80,7 @@
   "setup_records": {
     "Raven Workspace": {
       "constant": "RAVEN_WORKSPACE_NAME",
+      "field": "workspace_name",
       "value": "Customer communications"
     }
   }
