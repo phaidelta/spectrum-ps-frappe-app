@@ -1,0 +1,12 @@
+[
+	{"doctype": "Workflow State", "name": "Accepted", "workflow_state_name": "Accepted"},
+	{"doctype": "Workflow State", "name": "Assigned", "workflow_state_name": "Assigned"},
+	{"doctype": "Workflow State", "name": "Cancelled", "workflow_state_name": "Cancelled"},
+	{"doctype": "Workflow State", "name": "Completed", "workflow_state_name": "Completed"},
+	{"doctype": "Workflow State", "name": "In Progress", "workflow_state_name": "In Progress"},
+	{"doctype": "Workflow State", "name": "New", "workflow_state_name": "New"},
+	{"doctype": "Workflow State", "name": "On Hold", "workflow_state_name": "On Hold"},
+	{"doctype": "Workflow State", "name": "Paid", "workflow_state_name": "Paid"},
+	{"doctype": "Workflow State", "name": "Reopened", "workflow_state_name": "Reopened"},
+	{"doctype": "Workflow State", "name": "Resolved", "workflow_state_name": "Resolved"}
+]
