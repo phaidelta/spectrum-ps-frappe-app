@@ -80,6 +80,7 @@
   "setup_records": {
     "Raven Workspace": {
       "constant": "RAVEN_WORKSPACE_NAME",
+      "field": "workspace_name",
       "value": "Customer communications"
     }
   }

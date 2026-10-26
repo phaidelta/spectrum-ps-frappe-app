@@ -125,8 +125,8 @@ jobs:
         working-directory: /home/runner/frappe-bench
         run: |
           if [ -f sites/test_site/site_config.json ]; then
-            bench --site test_site execute spectrum_ps.deployment_summary.write_installed_doctypes \
-              --kwargs "{\"output_path\":\"$RUNNER_TEMP/installed-doctypes.json\"}" \
+            bench --site test_site execute spectrum_ps.deployment_summary.write_deployment_state \
+              --kwargs "{\"output_path\":\"$RUNNER_TEMP/deployment-state.json\"}" \
               || echo "Could not collect installed DocTypes"
           else
             echo "Test site was not created; skipping deployed DocType collection"
@@ -141,5 +141,5 @@ jobs:
         run: |
           python .github/scripts/write_ci_summary.py \
             --test-log "$RUNNER_TEMP/test-output.log" \
-            --installed-doctypes "$RUNNER_TEMP/installed-doctypes.json" \
+            --installed-doctypes "$RUNNER_TEMP/deployment-state.json" \
             --summary "$GITHUB_STEP_SUMMARY"

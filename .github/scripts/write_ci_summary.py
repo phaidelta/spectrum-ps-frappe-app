@@ -74,6 +74,10 @@ def source_doctypes(root, ground_truth):
 	return doctypes
 
 
+def deployment_value(value):
+	return "Yes" if value is True else "No" if value is False else "Unknown"
+
+
 def render_doctype_table(root, installed):
 	ground_truth = read_json(root / "spectrum_ps" / "deployment_ground_truth.json", {})
 	source = source_doctypes(root, ground_truth)
@@ -84,6 +88,7 @@ def render_doctype_table(root, installed):
 		| set(ground_truth.get("custom_fields", {}))
 		| set(ground_truth.get("fixture_records", {}))
 	)
+	installed_doctypes = set(installed.get("doctypes", [])) if installed else None
 
 	lines = [
 		"| DocType | In source/code | Installed in deployment | Result |",
@@ -91,8 +96,8 @@ def render_doctype_table(root, installed):
 	]
 	for doctype in sorted(expected):
 		in_source = doctype in source
-		in_deployment = installed is not None and doctype in installed
-		if installed is None:
+		in_deployment = installed_doctypes is not None and doctype in installed_doctypes
+		if installed_doctypes is None:
 			result = "Deployment state unavailable"
 			deployment_value = "Unknown"
 		elif in_source and in_deployment:
@@ -108,6 +113,107 @@ def render_doctype_table(root, installed):
 			result = "Missing from source and deployment"
 			deployment_value = "No"
 		lines.append(f"| `{doctype}` | {'Yes' if in_source else 'No'} | {deployment_value} | {result} |")
+	return "\n".join(lines)
+
+
+def render_custom_field_table(root, installed):
+	ground_truth = read_json(root / "spectrum_ps" / "deployment_ground_truth.json", {})
+	fixture_path = root / "spectrum_ps" / "fixtures" / "custom_field.json"
+	fields = read_json(fixture_path, [])
+	source_fields = {(field.get("dt"), field.get("fieldname")) for field in fields}
+	deployment_fields = {
+		(field.get("doctype"), field.get("fieldname")): field.get("installed")
+		for field in (installed or {}).get("custom_fields", [])
+	}
+
+	lines = [
+		"| DocType | Custom field | In source fixture | Installed in deployment | Result |",
+		"|---|---|---:|---:|---|",
+	]
+	for doctype, fieldnames in sorted(ground_truth.get("custom_fields", {}).items()):
+		for fieldname in sorted(fieldnames):
+			in_source = (doctype, fieldname) in source_fields
+			deployed = deployment_fields.get((doctype, fieldname))
+			if deployed is None:
+				result = "Deployment state unavailable"
+			elif in_source and deployed:
+				result = "Present"
+			elif in_source:
+				result = "Missing from deployment"
+			elif deployed:
+				result = "Deployment only"
+			else:
+				result = "Missing from source and deployment"
+			lines.append(
+				f"| `{doctype}` | `{fieldname}` | {'Yes' if in_source else 'No'} "
+				f"| {deployment_value(deployed)} | {result} |"
+			)
+	return "\n".join(lines)
+
+
+def render_record_table(root, installed):
+	ground_truth = read_json(root / "spectrum_ps" / "deployment_ground_truth.json", {})
+	fixtures_dir = root / "spectrum_ps" / "fixtures"
+	fixture_source = {}
+	for doctype in ground_truth.get("fixture_records", {}):
+		path = fixtures_dir / f"{doctype.lower().replace(' ', '_')}.json"
+		fixture_source[doctype] = {record.get("name") for record in read_json(path, []) if record.get("name")}
+
+	source_setup = (root / "spectrum_ps" / "setup.py").read_text(errors="replace")
+	setup_records = ground_truth.get("setup_records", {})
+	setup_source = {
+		(doctype, record["value"]): bool(
+			re.search(
+				rf"^\s*{re.escape(record['constant'])}\s*=\s*['\"]{re.escape(record['value'])}['\"]",
+				source_setup,
+				re.MULTILINE,
+			)
+		)
+		for doctype, record in setup_records.items()
+	}
+	deployment_fixtures = (installed or {}).get("fixture_records", {})
+	deployment_setup = (installed or {}).get("setup_records", {})
+
+	lines = [
+		"| Record type | DocType | Record | In source | Installed in deployment | Result |",
+		"|---|---|---|---:|---:|---|",
+	]
+	records = [
+		(
+			"Fixture",
+			doctype,
+			name,
+			name in fixture_source.get(doctype, set()),
+			deployment_fixtures.get(doctype, {}).get(name),
+		)
+		for doctype, names in ground_truth.get("fixture_records", {}).items()
+		for name in names
+	]
+	records.extend(
+		(
+			"Setup",
+			doctype,
+			record["value"],
+			setup_source.get((doctype, record["value"]), False),
+			deployment_setup.get(doctype, {}).get(record["value"]),
+		)
+		for doctype, record in setup_records.items()
+	)
+	for record_type, doctype, name, in_source, deployed in records:
+		if deployed is None:
+			result = "Deployment state unavailable"
+		elif in_source and deployed:
+			result = "Present"
+		elif in_source:
+			result = "Missing from deployment"
+		elif deployed:
+			result = "Deployment only"
+		else:
+			result = "Missing from source and deployment"
+		lines.append(
+			f"| {record_type} | `{doctype}` | `{name}` | {'Yes' if in_source else 'No'} "
+			f"| {deployment_value(deployed)} | {result} |"
+		)
 	return "\n".join(lines)
 
 
@@ -132,7 +238,7 @@ def main():
 	elif tests["total"] is None and test_outcome == "skipped":
 		tests["status"] = "NOT RUN"
 	installed_data = read_json(args.installed_doctypes, None)
-	installed = set(installed_data) if isinstance(installed_data, list) else None
+	installed = installed_data if isinstance(installed_data, dict) else None
 	root = Path(__file__).resolve().parents[2]
 	test_row = (
 		f"| `bench run-tests --app spectrum_ps` | {tests['status']} "
@@ -160,7 +266,9 @@ def main():
 		lines.extend(["", "**Individual test results:**", "", "| Test | Result |", "|---|---|"])
 		lines.extend(f"| `{name}` | {result} |" for name, result in tests["individual_results"])
 
-	lines.extend(["", "## DocType Deployment Status", "", render_doctype_table(root, installed), ""])
+	lines.extend(["", "## DocType Deployment Status", "", render_doctype_table(root, installed)])
+	lines.extend(["", "## Custom Field Deployment Status", "", render_custom_field_table(root, installed)])
+	lines.extend(["", "## Fixture and Setup Record Status", "", render_record_table(root, installed), ""])
 	args.summary.write_text("\n".join(lines), encoding="utf-8")
 
 
