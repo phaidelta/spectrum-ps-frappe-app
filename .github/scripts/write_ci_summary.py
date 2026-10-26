@@ -134,18 +134,20 @@ def main():
 	installed_data = read_json(args.installed_doctypes, None)
 	installed = set(installed_data) if isinstance(installed_data, list) else None
 	root = Path(__file__).resolve().parents[2]
+	test_row = (
+		f"| `bench run-tests --app spectrum_ps` | {tests['status']} "
+		f"| {tests['total'] if tests['total'] is not None else 'Unknown'} "
+		f"| {tests['passed'] if tests['passed'] is not None else 'Unknown'} "
+		f"| {tests['failed'] if tests['failed'] is not None else 'Unknown'} "
+		f"| {tests['skipped'] if tests['total'] is not None else 'Unknown'} |"
+	)
 
 	lines = [
 		"## CI Test Summary",
 		"",
 		"| Test suite | Status | Run | Passed | Failed | Skipped |",
 		"|---|---:|---:|---:|---:|---:|",
-		"| `bench run-tests --app spectrum_ps` "
-		f"| {tests['status']} "
-		f"| {tests['total'] if tests['total'] is not None else 'Unknown'} "
-		f"| {tests['passed'] if tests['passed'] is not None else 'Unknown'} "
-		f"| {tests['failed'] if tests['failed'] is not None else 'Unknown'} "
-		f"| {tests['skipped'] if tests['total'] is not None else 'Unknown'} |",
+		test_row,
 	]
 	if tests["failed_tests"]:
 		lines.extend(["", "**Failed tests:**", ""])
