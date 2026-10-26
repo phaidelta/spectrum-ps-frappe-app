@@ -86,8 +86,8 @@ app_license = "mit"
 # Installation
 # ------------
 
-# before_install = "spectrum_ps.install.before_install"
-# after_install = "spectrum_ps.install.after_install"
+# before_install = "spectrum_ps.setup.before_install"
+after_install = "spectrum_ps.setup.after_install"
 
 # Uninstallation
 # ------------
