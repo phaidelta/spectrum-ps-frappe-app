@@ -48,6 +48,38 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 			f"Required fixture records are missing from source: {', '.join(missing_records)}",
 		)
 
+		workflow_records = json.loads((fixtures_path / "workflow.json").read_text())
+		for workflow_name, requirement in ground_truth.get("workflows", {}).items():
+			workflow = next((row for row in workflow_records if row["name"] == workflow_name), None)
+			self.assertIsNotNone(workflow, f"Workflow fixture is missing: {workflow_name}")
+			for fieldname in ("document_type", "is_active", "workflow_state_field"):
+				self.assertEqual(workflow[fieldname], requirement[fieldname])
+
+			actual_states = {
+				(row["state"], int(row["doc_status"]), row["allow_edit"]) for row in workflow["states"]
+			}
+			expected_states = {
+				(row["state"], row["doc_status"], row["allow_edit"]) for row in requirement["states"]
+			}
+			self.assertEqual(
+				actual_states,
+				expected_states,
+				f"Workflow states differ from ground truth for {workflow_name}",
+			)
+
+			transition_fields = ("state", "action", "next_state", "allowed")
+			actual_transitions = {
+				tuple(row[fieldname] for fieldname in transition_fields) for row in workflow["transitions"]
+			}
+			expected_transitions = {
+				tuple(row[fieldname] for fieldname in transition_fields) for row in requirement["transitions"]
+			}
+			self.assertEqual(
+				actual_transitions,
+				expected_transitions,
+				f"Workflow transitions differ from ground truth for {workflow_name}",
+			)
+
 		for doctype, requirement in ground_truth["setup_records"].items():
 			self.assertEqual(
 				getattr(setup, requirement["constant"], None),
@@ -133,6 +165,38 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 			[],
 			f"Fixture records are not installed: {', '.join(missing_records)}",
 		)
+
+	def test_workflow_fixtures_are_installed_with_all_states_and_transitions(self):
+		app_path = Path(frappe.get_app_path("spectrum_ps"))
+		ground_truth = json.loads((app_path / "deployment_ground_truth.json").read_text())
+		for workflow_name, requirement in ground_truth.get("workflows", {}).items():
+			workflow = frappe.get_doc("Workflow", workflow_name)
+			self.assertEqual(workflow.document_type, requirement["document_type"])
+			self.assertEqual(int(workflow.is_active), requirement["is_active"])
+			self.assertEqual(workflow.workflow_state_field, requirement["workflow_state_field"])
+
+			actual_states = {(row.state, int(row.doc_status), row.allow_edit) for row in workflow.states}
+			expected_states = {
+				(row["state"], row["doc_status"], row["allow_edit"]) for row in requirement["states"]
+			}
+			self.assertEqual(
+				actual_states,
+				expected_states,
+				f"Installed workflow states differ from ground truth for {workflow_name}",
+			)
+
+			transition_fields = ("state", "action", "next_state", "allowed")
+			actual_transitions = {
+				tuple(row[fieldname] for fieldname in transition_fields) for row in workflow.transitions
+			}
+			expected_transitions = {
+				tuple(row[fieldname] for fieldname in transition_fields) for row in requirement["transitions"]
+			}
+			self.assertEqual(
+				actual_transitions,
+				expected_transitions,
+				f"Installed workflow transitions differ from ground truth for {workflow_name}",
+			)
 
 	def test_setup_created_custom_permissions_exist(self):
 		required_permissions = {

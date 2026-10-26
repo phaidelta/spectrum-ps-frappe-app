@@ -211,6 +211,53 @@ fixtures = [
 		"filters": [["name", "in", ["Technician", "Spectrum PS User"]]],
 	},
 	{
+		"dt": "Workflow State",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Accepted",
+					"Assigned",
+					"Cancelled",
+					"Completed",
+					"In Progress",
+					"New",
+					"On Hold",
+					"Paid",
+					"Reopened",
+					"Resolved",
+				],
+			]
+		],
+	},
+	{
+		"dt": "Workflow Action Master",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Accept",
+					"Assign",
+					"Cancel",
+					"Confirm",
+					"Payment",
+					"Put on Hold",
+					"Reject",
+					"Reopen",
+					"Resolve",
+					"Review",
+					"Start Work",
+				],
+			]
+		],
+	},
+	{
+		"dt": "Workflow",
+		"filters": [["name", "in", ["Track status"]]],
+	},
+	{
 		"dt": "Notification",
 		"filters": [
 			[
