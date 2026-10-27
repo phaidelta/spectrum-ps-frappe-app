@@ -1,7 +1,6 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": null,
  "creation": "2026-10-22 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -25,7 +24,7 @@
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 0,
- "is_child_table": 1,
+ "istable": 1,
  "issingle": 0,
  "links": [],
  "modified": "2026-10-22 00:00:00.000000",
