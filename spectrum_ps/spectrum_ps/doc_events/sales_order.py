@@ -1,3 +1,4 @@
+import json
 import frappe
 from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
@@ -30,6 +31,12 @@ def handle_completed(doc):
 			"customer_name": _get_customer_name(doc),
 			"order_id": doc.name,
 		},
+	)
+
+
+def before_validate(doc):
+	doc.custom_ticket_type = json.dumps(
+		list(map(lambda x: x.item_name, doc.items)) if isinstance(doc.items, list) else []
 	)
 
 
