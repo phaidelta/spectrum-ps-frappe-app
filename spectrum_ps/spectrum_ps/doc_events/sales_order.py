@@ -1,4 +1,5 @@
 import json
+
 import frappe
 from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
