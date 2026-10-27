@@ -34,8 +34,9 @@ def handle_completed(doc):
 		},
 	)
 
+
 def before_validate(doc):
-  	# nosemgrep: frappe-semgrep-rules.rules.frappe-no-functional-code
+	# nosemgrep: frappe-semgrep-rules.rules.frappe-no-functional-code
 	doc.custom_ticket_type = json.dumps(
 		list(map(lambda x: x.item_name, doc.items)) if isinstance(doc.items, list) else []
 	)
