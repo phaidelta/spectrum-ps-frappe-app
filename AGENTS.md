@@ -19,6 +19,7 @@ The app is named `spectrum_ps` and targets Frappe/ERPNext 16. The project requir
 - `.github/workflows/ci.yml` — boots a Frappe site with ERPNext and Raven, installs this app, runs its tests, and writes a deployment summary.
 - `.github/workflows/linter.yml` — runs pre-commit hooks, Frappe Semgrep rules, and pip-audit.
 - `.github/scripts/write_ci_summary.py` — renders test and deployment coverage into the GitHub Actions step summary.
+- `APP_AUTOMATIONS.md` — describes document-event side effects, role-driven behavior, Raven/WhatsApp integrations, and install/migrate setup.
 
 ## Development Environment
 
@@ -50,6 +51,7 @@ Follow the repository's root configuration files: `.editorconfig`, `pyproject.to
 - Installation and migration setup is centralized in `spectrum_ps/setup.py` through `after_install` and `after_migrate`. Keep setup operations safe to run repeatedly.
 - ERPNext doctypes such as Customer, Sales Order, Sales Order Item, Sales Invoice, Item, and Address, and Raven doctypes are integration dependencies rather than app-owned doctypes.
 - Do not assume a standalone Frappe installation contains ERPNext or Raven. The integration CI installs all three applications.
+- Read `APP_AUTOMATIONS.md` before changing event hooks or integration behavior, and update it when app automations change.
 
 ## Fixtures and Deployment Integrity
 
