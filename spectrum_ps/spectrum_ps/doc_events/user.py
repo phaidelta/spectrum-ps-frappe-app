@@ -4,13 +4,21 @@ import frappe
 def check_and_add_role(doc, method):
 	target_role = "Raven User"
 	spectrum_user_role = "Spectrum PS User"
+	technician_role = "Technician"
 
 	user_roles = [r.role for r in doc.roles]
 	if spectrum_user_role in user_roles and target_role not in user_roles:
-		doc.add_roles("Raven User")
-		frappe.msgpring(
+		doc.add_roles(target_role)
+		frappe.msgprint(
 			f"Role '{target_role}' was added automatically because '{spectrum_user_role}' is present.",
 			alert=True,
 		)
 
-	# TODO: Check if "Technician" role is added and add a `Technician` doc linked to this doc (similar to how it's done for Raven User). No removing. Create Technician with other fields default values
+	if technician_role in user_roles and not frappe.db.exists("Technician", {"user": doc.name}):
+		frappe.get_doc(
+			{
+				"doctype": "Technician",
+				"user": doc.name,
+				"technician_name": doc.full_name or doc.name,
+			}
+		).insert(ignore_permissions=True)
