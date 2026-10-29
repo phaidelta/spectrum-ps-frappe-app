@@ -47,13 +47,16 @@ def add_assigned_user(doc, method=None):
 			sales_order.save(ignore_permissions=True)
 
 	with as_user(SYSTEM_MANAGER_USER):
-		# nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
-		frappe.call(
-			"raven.api.raven_channel_member.add_channel_members",
-			channel_id=sales_order.custom_raven_channel,
-			members=[assigned_to],
-		)
-	frappe.log(f"Added Raven User `{user.name}` to Channel `{sales_order.custom_raven_channel}`")
+		try:
+			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
+			frappe.call(
+				"raven.api.raven_channel_member.add_channel_members",
+				channel_id=sales_order.custom_raven_channel,
+				members=[assigned_to],
+			)
+			frappe.log(f"Added Raven User `{user.name}` to Channel `{sales_order.custom_raven_channel}`")
+		except frappe.exceptions.DuplicateEntryError:
+			frappe.log(f"Raven User `{user.name}` was already present in Channel `{sales_order.custom_raven_channel}`")
 
 
 def remove_assigned_user(doc, method=None):
