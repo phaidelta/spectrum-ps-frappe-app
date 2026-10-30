@@ -1,51 +1,180 @@
 [
-	{
-		"doctype": "Workflow",
-		"name": "Track status",
-		"workflow_name": "Track status",
-		"document_type": "Sales Order",
-		"is_active": 1,
-		"send_email_alert": 0,
-		"enable_action_confirmation": 0,
-		"workflow_state_field": "custom_ticket_status",
-		"states": [
-			{"state": "New", "doc_status": "1", "allow_edit": "System Manager"},
-			{"state": "Assigned", "doc_status": "1", "allow_edit": "System Manager"},
-			{"state": "Accepted", "doc_status": "1", "allow_edit": "All"},
-			{"state": "In Progress", "doc_status": "1", "allow_edit": "All"},
-			{"state": "Resolved", "doc_status": "1", "allow_edit": "All"},
-			{"state": "Completed", "doc_status": "1", "allow_edit": "All"},
-			{"state": "On Hold", "doc_status": "1", "allow_edit": "All"},
-			{"state": "Reopened", "doc_status": "1", "allow_edit": "All"},
-			{"state": "Cancelled", "doc_status": "1", "allow_edit": "All"},
-			{"state": "Paid", "doc_status": "1", "allow_edit": "System Manager"}
-		],
-		"transitions": [
-			{"state": "New", "action": "Assign", "next_state": "Assigned", "allowed": "System Manager"},
-			{"state": "Assigned", "action": "Accept", "next_state": "Accepted", "allowed": "All"},
-			{"state": "Accepted", "action": "Start Work", "next_state": "In Progress", "allowed": "All"},
-			{"state": "Assigned", "action": "Cancel", "next_state": "Cancelled", "allowed": "All"},
-			{"state": "Assigned", "action": "Put on Hold", "next_state": "On Hold", "allowed": "All"},
-			{"state": "In Progress", "action": "Resolve", "next_state": "Resolved", "allowed": "All"},
-			{"state": "Resolved", "action": "Confirm", "next_state": "Completed", "allowed": "All"},
-			{"state": "On Hold", "action": "Reopen", "next_state": "Reopened", "allowed": "All"},
-			{"state": "New", "action": "Cancel", "next_state": "Cancelled", "allowed": "All"},
-			{"state": "Accepted", "action": "Put on Hold", "next_state": "On Hold", "allowed": "All"},
-			{"state": "Accepted", "action": "Cancel", "next_state": "Cancelled", "allowed": "All"},
-			{"state": "In Progress", "action": "Put on Hold", "next_state": "On Hold", "allowed": "All"},
-			{"state": "In Progress", "action": "Cancel", "next_state": "Cancelled", "allowed": "All"},
-			{"state": "Resolved", "action": "Put on Hold", "next_state": "On Hold", "allowed": "All"},
-			{"state": "Resolved", "action": "Cancel", "next_state": "Cancelled", "allowed": "All"},
-			{"state": "Completed", "action": "Start Work", "next_state": "In Progress", "allowed": "All"},
-			{"state": "Completed", "action": "Reopen", "next_state": "Reopened", "allowed": "All"},
-			{"state": "On Hold", "action": "Start Work", "next_state": "In Progress", "allowed": "All"},
-			{"state": "On Hold", "action": "Resolve", "next_state": "Resolved", "allowed": "All"},
-			{"state": "On Hold", "action": "Confirm", "next_state": "Completed", "allowed": "All"},
-			{"state": "On Hold", "action": "Cancel", "next_state": "Cancelled", "allowed": "All"},
-			{"state": "Reopened", "action": "Assign", "next_state": "Assigned", "allowed": "All"},
-			{"state": "Reopened", "action": "Start Work", "next_state": "In Progress", "allowed": "All"},
-			{"state": "Assigned", "action": "Reject", "next_state": "On Hold", "allowed": "All"},
-			{"state": "Completed", "action": "Payment", "next_state": "Paid", "allowed": "System Manager"}
-		]
-	}
+  {
+    "doctype": "Workflow",
+    "name": "Track status",
+    "workflow_name": "Track status",
+    "document_type": "Sales Order",
+    "is_active": 1,
+    "send_email_alert": 0,
+    "enable_action_confirmation": 0,
+    "workflow_state_field": "custom_ticket_status",
+    "states": [
+      { "state": "New", "doc_status": "1", "allow_edit": "System Manager" },
+      {
+        "state": "Assigned",
+        "doc_status": "1",
+        "allow_edit": "System Manager"
+      },
+      { "state": "Accepted", "doc_status": "1", "allow_edit": "All" },
+      { "state": "In Progress", "doc_status": "1", "allow_edit": "All" },
+      { "state": "Resolved", "doc_status": "1", "allow_edit": "All" },
+      { "state": "Completed", "doc_status": "1", "allow_edit": "All" },
+      { "state": "On Hold", "doc_status": "1", "allow_edit": "All" },
+      { "state": "Reopened", "doc_status": "1", "allow_edit": "All" },
+      { "state": "Cancelled", "doc_status": "1", "allow_edit": "All" },
+      { "state": "Paid", "doc_status": "1", "allow_edit": "System Manager" }
+    ],
+    "transitions": [
+      {
+        "state": "New",
+        "action": "Assign",
+        "next_state": "Assigned",
+        "allowed": "System Manager"
+      },
+      {
+        "state": "Assigned",
+        "action": "Accept",
+        "next_state": "Accepted",
+        "allowed": "All"
+      },
+      {
+        "state": "Accepted",
+        "action": "Start Work",
+        "next_state": "In Progress",
+        "allowed": "All"
+      },
+      {
+        "state": "Assigned",
+        "action": "Cancel",
+        "next_state": "Cancelled",
+        "allowed": "All"
+      },
+      {
+        "state": "Assigned",
+        "action": "Put on Hold",
+        "next_state": "On Hold",
+        "allowed": "All"
+      },
+      {
+        "state": "In Progress",
+        "action": "Resolve",
+        "next_state": "Resolved",
+        "allowed": "All"
+      },
+      {
+        "state": "Resolved",
+        "action": "Confirm",
+        "next_state": "Completed",
+        "allowed": "All"
+      },
+      {
+        "state": "On Hold",
+        "action": "Reopen",
+        "next_state": "Reopened",
+        "allowed": "All"
+      },
+      {
+        "state": "New",
+        "action": "Cancel",
+        "next_state": "Cancelled",
+        "allowed": "All"
+      },
+      {
+        "state": "Accepted",
+        "action": "Put on Hold",
+        "next_state": "On Hold",
+        "allowed": "All"
+      },
+      {
+        "state": "Accepted",
+        "action": "Cancel",
+        "next_state": "Cancelled",
+        "allowed": "All"
+      },
+      {
+        "state": "In Progress",
+        "action": "Put on Hold",
+        "next_state": "On Hold",
+        "allowed": "All"
+      },
+      {
+        "state": "In Progress",
+        "action": "Cancel",
+        "next_state": "Cancelled",
+        "allowed": "All"
+      },
+      {
+        "state": "Resolved",
+        "action": "Put on Hold",
+        "next_state": "On Hold",
+        "allowed": "All"
+      },
+      {
+        "state": "Resolved",
+        "action": "Cancel",
+        "next_state": "Cancelled",
+        "allowed": "All"
+      },
+      {
+        "state": "Completed",
+        "action": "Start Work",
+        "next_state": "In Progress",
+        "allowed": "All"
+      },
+      {
+        "state": "Completed",
+        "action": "Reopen",
+        "next_state": "Reopened",
+        "allowed": "All"
+      },
+      {
+        "state": "On Hold",
+        "action": "Start Work",
+        "next_state": "In Progress",
+        "allowed": "All"
+      },
+      {
+        "state": "On Hold",
+        "action": "Resolve",
+        "next_state": "Resolved",
+        "allowed": "All"
+      },
+      {
+        "state": "On Hold",
+        "action": "Confirm",
+        "next_state": "Completed",
+        "allowed": "All"
+      },
+      {
+        "state": "On Hold",
+        "action": "Cancel",
+        "next_state": "Cancelled",
+        "allowed": "All"
+      },
+      {
+        "state": "Reopened",
+        "action": "Assign",
+        "next_state": "Assigned",
+        "allowed": "All"
+      },
+      {
+        "state": "Reopened",
+        "action": "Start Work",
+        "next_state": "In Progress",
+        "allowed": "All"
+      },
+      {
+        "state": "Assigned",
+        "action": "Reject",
+        "next_state": "On Hold",
+        "allowed": "All"
+      },
+      {
+        "state": "Completed",
+        "action": "Payment",
+        "next_state": "Paid",
+        "allowed": "System Manager"
+      }
+    ]
+  }
 ]
