@@ -177,6 +177,14 @@ def handle_sales_order_create(doc, method=None):
 				pluck="parent",
 			)
 		)
+		# TODO: Split this off into its own toggle
+		users_to_add.update(
+			frappe.get_all(
+				"Has Role",
+				filters={"role": "System Manager", "parenttype": "User"},
+				pluck="parent",
+			)
+		)
 
 	existing_members = set(
 		frappe.get_all(
