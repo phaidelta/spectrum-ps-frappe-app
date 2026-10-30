@@ -36,6 +36,13 @@
         "condition": null,
         "receiver_by_document_field": null,
         "receiver_by_role": "System Manager"
+      },
+      {
+        "bcc": null,
+        "cc": null,
+        "condition": null,
+        "receiver_by_document_field": null,
+        "receiver_by_role": "Administrator"
       }
     ],
     "send_system_notification": 0,
@@ -44,7 +51,7 @@
     "sender_email": null,
     "set_property_after_alert": null,
     "slack_webhook_url": null,
-    "subject": null,
+    "subject": "New ticket created: {{ doc.name }}",
     "value_changed": null
   },
   {
@@ -84,6 +91,13 @@
         "condition": null,
         "receiver_by_document_field": null,
         "receiver_by_role": "System Manager"
+      },
+      {
+        "bcc": null,
+        "cc": null,
+        "condition": null,
+        "receiver_by_document_field": null,
+        "receiver_by_role": "Administrator"
       }
     ],
     "send_system_notification": 0,
@@ -92,7 +106,7 @@
     "sender_email": null,
     "set_property_after_alert": null,
     "slack_webhook_url": null,
-    "subject": null,
+    "subject": "Technician started work on ticket {{ doc.name }}",
     "value_changed": "custom_ticket_status"
   },
   {
@@ -132,6 +146,13 @@
         "condition": null,
         "receiver_by_document_field": null,
         "receiver_by_role": "System Manager"
+      },
+      {
+        "bcc": null,
+        "cc": null,
+        "condition": null,
+        "receiver_by_document_field": null,
+        "receiver_by_role": "Administrator"
       }
     ],
     "send_system_notification": 0,
@@ -140,7 +161,7 @@
     "sender_email": null,
     "set_property_after_alert": null,
     "slack_webhook_url": null,
-    "subject": null,
+    "subject": "Work resolved for ticket {{ doc.name }}",
     "value_changed": "custom_ticket_status"
   },
   {
@@ -183,6 +204,13 @@
         "cc": null,
         "bcc": null,
         "condition": null
+      },
+      {
+        "bcc": null,
+        "cc": null,
+        "condition": null,
+        "receiver_by_document_field": null,
+        "receiver_by_role": "Administrator"
       }
     ]
   },
