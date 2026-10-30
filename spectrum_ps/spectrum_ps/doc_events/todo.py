@@ -56,7 +56,9 @@ def add_assigned_user(doc, method=None):
 			)
 			frappe.log(f"Added Raven User `{user.name}` to Channel `{sales_order.custom_raven_channel}`")
 		except frappe.exceptions.DuplicateEntryError:
-			frappe.log(f"Raven User `{user.name}` was already present in Channel `{sales_order.custom_raven_channel}`")
+			frappe.log(
+				f"Raven User `{user.name}` was already present in Channel `{sales_order.custom_raven_channel}`"
+			)
 
 
 def remove_assigned_user(doc, method=None):
