@@ -9,8 +9,8 @@
 		"enable_action_confirmation": 0,
 		"workflow_state_field": "custom_ticket_status",
 		"states": [
-			{"state": "New", "doc_status": "1", "allow_edit": "Administrator"},
-			{"state": "Assigned", "doc_status": "1", "allow_edit": "Administrator"},
+			{"state": "New", "doc_status": "1", "allow_edit": "System Manager"},
+			{"state": "Assigned", "doc_status": "1", "allow_edit": "System Manager"},
 			{"state": "Accepted", "doc_status": "1", "allow_edit": "All"},
 			{"state": "In Progress", "doc_status": "1", "allow_edit": "All"},
 			{"state": "Resolved", "doc_status": "1", "allow_edit": "All"},
@@ -18,10 +18,10 @@
 			{"state": "On Hold", "doc_status": "1", "allow_edit": "All"},
 			{"state": "Reopened", "doc_status": "1", "allow_edit": "All"},
 			{"state": "Cancelled", "doc_status": "1", "allow_edit": "All"},
-			{"state": "Paid", "doc_status": "1", "allow_edit": "Administrator"}
+			{"state": "Paid", "doc_status": "1", "allow_edit": "System Manager"}
 		],
 		"transitions": [
-			{"state": "New", "action": "Assign", "next_state": "Assigned", "allowed": "Administrator"},
+			{"state": "New", "action": "Assign", "next_state": "Assigned", "allowed": "System Manager"},
 			{"state": "Assigned", "action": "Accept", "next_state": "Accepted", "allowed": "All"},
 			{"state": "Accepted", "action": "Start Work", "next_state": "In Progress", "allowed": "All"},
 			{"state": "Assigned", "action": "Cancel", "next_state": "Cancelled", "allowed": "All"},
@@ -45,7 +45,7 @@
 			{"state": "Reopened", "action": "Assign", "next_state": "Assigned", "allowed": "All"},
 			{"state": "Reopened", "action": "Start Work", "next_state": "In Progress", "allowed": "All"},
 			{"state": "Assigned", "action": "Reject", "next_state": "On Hold", "allowed": "All"},
-			{"state": "Completed", "action": "Payment", "next_state": "Paid", "allowed": "Administrator"}
+			{"state": "Completed", "action": "Payment", "next_state": "Paid", "allowed": "System Manager"}
 		]
 	}
 ]

@@ -35,7 +35,7 @@
                 "cc": null,
                 "condition": null,
                 "receiver_by_document_field": null,
-                "receiver_by_role": "Administrator"
+                "receiver_by_role": "System Manager"
             }
         ],
         "send_system_notification": 0,
@@ -83,7 +83,7 @@
                 "cc": null,
                 "condition": null,
                 "receiver_by_document_field": null,
-                "receiver_by_role": "Administrator"
+                "receiver_by_role": "System Manager"
             }
         ],
         "send_system_notification": 0,
@@ -131,7 +131,7 @@
                 "cc": null,
                 "condition": null,
                 "receiver_by_document_field": null,
-                "receiver_by_role": "Administrator"
+                "receiver_by_role": "System Manager"
             }
         ],
         "send_system_notification": 0,
@@ -179,7 +179,7 @@
         "recipients": [
             {
                 "receiver_by_document_field": null,
-                "receiver_by_role": "Administrator",
+                "receiver_by_role": "System Manager",
                 "cc": null,
                 "bcc": null,
                 "condition": null
