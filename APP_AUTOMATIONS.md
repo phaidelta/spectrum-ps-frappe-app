@@ -63,7 +63,9 @@ Registered on `on_update` by
 - Add users configured in the single `Spectrum PS Ticket Settings` document to
   the channel. If `add_all_administrators` is enabled, also include users with
   the `Administrator` role. User IDs are de-duplicated and existing channel
-  members are skipped.
+  members are skipped. Only candidates with a matching `Raven User` record are
+  passed to Raven; successfully added users are logged, and candidates without
+  a Raven User record are logged as warnings and skipped.
 - Require a Customer. If the Customer has no active Sales Order, link this one.
   If another active order is linked, replace it only when that order is missing,
   cancelled (`docstatus == 2`), or has ticket status `Paid` or `Cancelled`;
