@@ -177,6 +177,14 @@ def handle_sales_order_create(doc, method=None):
 				pluck="parent",
 			)
 		)
+		# TODO: Split this off into its own toggle
+		users_to_add.update(
+			frappe.get_all(
+				"Has Role",
+				filters={"role": "System Manager", "parenttype": "User"},
+				pluck="parent",
+			)
+		)
 
 	existing_members = set(
 		frappe.get_all(
@@ -186,11 +194,20 @@ def handle_sales_order_create(doc, method=None):
 		)
 	)
 	members_to_add = sorted(users_to_add - existing_members)
-	if members_to_add:
-		frappe.log(
-			f"Adding users {members_to_add} for Sales Order `{doc.name}` "
-			f"to raven channel `{raven_channel.name}`"
+	raven_users = (
+		set(
+			frappe.get_all(
+				"Raven User",
+				filters={"name": ["in", members_to_add]},
+				pluck="name",
+			)
 		)
+		if members_to_add
+		else set()
+	)
+	users_without_raven_user = sorted(set(members_to_add) - raven_users)
+	members_to_add = sorted(raven_users)
+	if members_to_add:
 		with as_user(SYSTEM_MANAGER_USER):
 			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
 			frappe.call(
@@ -198,6 +215,19 @@ def handle_sales_order_create(doc, method=None):
 				channel_id=raven_channel.name,
 				members=members_to_add,
 			)
+		frappe.logger("spectrum_ps").info(
+			"Added Raven Users %s to channel %s for Sales Order %s",
+			members_to_add,
+			raven_channel.name,
+			doc.name,
+		)
+	if users_without_raven_user:
+		frappe.logger("spectrum_ps").warning(
+			"Did not add users without a Raven User record to channel %s for Sales Order %s: %s",
+			raven_channel.name,
+			doc.name,
+			users_without_raven_user,
+		)
 
 	if not doc.customer:
 		frappe.log(f"Sales Order `{doc.name}` has no Customer linked")

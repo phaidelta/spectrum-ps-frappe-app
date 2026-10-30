@@ -1,13 +1,57 @@
 [
-	{"doctype": "Workflow Action Master", "name": "Accept", "workflow_action_name": "Accept"},
-	{"doctype": "Workflow Action Master", "name": "Assign", "workflow_action_name": "Assign"},
-	{"doctype": "Workflow Action Master", "name": "Cancel", "workflow_action_name": "Cancel"},
-	{"doctype": "Workflow Action Master", "name": "Confirm", "workflow_action_name": "Confirm"},
-	{"doctype": "Workflow Action Master", "name": "Payment", "workflow_action_name": "Payment"},
-	{"doctype": "Workflow Action Master", "name": "Put on Hold", "workflow_action_name": "Put on Hold"},
-	{"doctype": "Workflow Action Master", "name": "Reject", "workflow_action_name": "Reject"},
-	{"doctype": "Workflow Action Master", "name": "Reopen", "workflow_action_name": "Reopen"},
-	{"doctype": "Workflow Action Master", "name": "Resolve", "workflow_action_name": "Resolve"},
-	{"doctype": "Workflow Action Master", "name": "Review", "workflow_action_name": "Review"},
-	{"doctype": "Workflow Action Master", "name": "Start Work", "workflow_action_name": "Start Work"}
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Accept",
+    "workflow_action_name": "Accept"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Assign",
+    "workflow_action_name": "Assign"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Cancel",
+    "workflow_action_name": "Cancel"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Confirm",
+    "workflow_action_name": "Confirm"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Payment",
+    "workflow_action_name": "Payment"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Put on Hold",
+    "workflow_action_name": "Put on Hold"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Reject",
+    "workflow_action_name": "Reject"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Reopen",
+    "workflow_action_name": "Reopen"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Resolve",
+    "workflow_action_name": "Resolve"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Review",
+    "workflow_action_name": "Review"
+  },
+  {
+    "doctype": "Workflow Action Master",
+    "name": "Start Work",
+    "workflow_action_name": "Start Work"
+  }
 ]
