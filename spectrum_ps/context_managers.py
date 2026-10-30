@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 import frappe
 
-DEFAULT_ELEVATED_SER = "Administrator"
+DEFAULT_ELEVATED_USER = "Administrator"
 
 
 @contextmanager
@@ -23,7 +23,7 @@ def ignore_permissions():
 
 
 @contextmanager
-def as_user(user: str | None = DEFAULT_ELEVATED_SER):
+def as_user(user: str | None = DEFAULT_ELEVATED_USER):
 	"""
 	Switch to a different user temporarily. Keep this as brief as possible to prevent attack vectors.
 
