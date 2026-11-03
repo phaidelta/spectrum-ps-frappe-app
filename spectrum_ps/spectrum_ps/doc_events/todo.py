@@ -3,7 +3,9 @@ from frappe import _
 
 from spectrum_ps.config import TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY
 from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
+from spectrum_ps.config.logic_config import TECHNICIAN_INACTIVE_TICKET_STATES
 from spectrum_ps.context_managers import as_user
+
 
 
 def add_assigned_user(doc, method=None):
@@ -11,7 +13,11 @@ def add_assigned_user(doc, method=None):
         return
 
     assigned_to = doc.allocated_to
-    frappe.log(f"Adding ToDo assignee `{assigned_to}` to Sales Order Raven Channel")
+
+    frappe.log(
+        f"Adding ToDo assignee `{assigned_to}` to Sales Order Raven Channel"
+    )
+
     if not frappe.db.exists("Raven User", assigned_to):
         frappe.log(f"Assigned user `{assigned_to}` is not a Raven User")
         frappe.throw(
@@ -21,18 +27,27 @@ def add_assigned_user(doc, method=None):
         )
 
     user = frappe.get_cached_doc("Raven User", assigned_to)
+
     if not doc.reference_name or not frappe.db.exists(
         "Sales Order", doc.reference_name
     ):
         frappe.log(
-            f"ToDo `{doc.name}` references missing Sales Order `{doc.reference_name}`"
+            f"ToDo `{doc.name}` references missing Sales Order "
+            f"`{doc.reference_name}`"
         )
-        frappe.throw(_("ToDo {0} references a missing Sales Order.").format(doc.name))
+        frappe.throw(
+            _("ToDo {0} references a missing Sales Order.").format(doc.name)
+        )
 
-    sales_order = frappe.get_cached_doc(doc.reference_type, doc.reference_name)
+    sales_order = frappe.get_cached_doc(
+        doc.reference_type, doc.reference_name
+    )
 
-    # Do not re-add technicians to Raven channels for inactive tickets.
-    if sales_order.custom_ticket_status in TECHNICIAN_INACTIVE_TICKET_STATES:
+    # Do not re-add technicians to inactive Sales Order channels.
+    if (
+        sales_order.custom_ticket_status
+        in TECHNICIAN_INACTIVE_TICKET_STATES
+    ):
         frappe.log(
             f"Skipping Raven channel addition for `{assigned_to}` "
             f"because Sales Order `{sales_order.name}` is "
@@ -40,48 +55,59 @@ def add_assigned_user(doc, method=None):
         )
         return
 
-    # TODO: Do not allow 2 ppl to be assigned to one sales order
-    # Find all previous linked ToDo of sales order that is not doc
-    #  frappe.get_all(filter=[name not doc.name])
-    # if ....:
-    # 	log
-    # 	remove the old assignment (delete old ToDo Doc)
+    # TODO: Prevent multiple technicians from being assigned
+    # to the same Sales Order.
 
     if not sales_order.customer:
-        frappe.log(f"Sales Order `{sales_order.name}` has no Customer linked")
-        frappe.throw(
-            _("Sales Order {0} must have a Customer linked.").format(sales_order.name)
+        frappe.log(
+            f"Sales Order `{sales_order.name}` has no Customer linked"
         )
-    if not sales_order.custom_raven_channel:
-        frappe.log(f"Sales Order `{sales_order.name}` has no Raven Channel linked")
         frappe.throw(
-            _("Sales Order {0} must have a Raven Channel linked.").format(
+            _("Sales Order {0} must have a Customer linked.").format(
                 sales_order.name
             )
         )
 
-	if (
-		sales_order.custom_ticket_status
-		in TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY
-	):
-		frappe.log(f"Updating Sales Order `{sales_order.name}` ticket status to Assigned")
-		sales_order.custom_ticket_status = "Assigned"
-		with as_user(SYSTEM_MANAGER_USER):
-			sales_order.save(ignore_permissions=True)
+    if not sales_order.custom_raven_channel:
+        frappe.log(
+            f"Sales Order `{sales_order.name}` has no Raven Channel linked"
+        )
+        frappe.throw(
+            _("Sales Order {0} has no Raven Channel linked.").format(
+                sales_order.name
+            )
+        )
 
-	with as_user(SYSTEM_MANAGER_USER):
-		try:
-			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
-			frappe.call(
-				"raven.api.raven_channel_member.add_channel_members",
-				channel_id=sales_order.custom_raven_channel,
-				members=[assigned_to],
-			)
-			frappe.log(f"Added Raven User `{user.name}` to Channel `{sales_order.custom_raven_channel}`")
-		except frappe.exceptions.DuplicateEntryError:
-			frappe.log(
-				f"Raven User `{user.name}` was already present in Channel `{sales_order.custom_raven_channel}`"
-			)
+    if (
+        sales_order.custom_ticket_status
+        in TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY
+    ):
+        frappe.log(
+            f"Updating Sales Order `{sales_order.name}` ticket status to Assigned"
+        )
+        sales_order.custom_ticket_status = "Assigned"
+
+        with as_user(SYSTEM_MANAGER_USER):
+            sales_order.save(ignore_permissions=True)
+
+    with as_user(SYSTEM_MANAGER_USER):
+        try:
+            frappe.call(
+                "raven.api.raven_channel_member.add_channel_members",
+                channel_id=sales_order.custom_raven_channel,
+                members=[assigned_to],
+            )
+
+            frappe.log(
+                f"Added Raven User `{user.name}` to Channel "
+                f"`{sales_order.custom_raven_channel}`"
+            )
+
+        except frappe.exceptions.DuplicateEntryError:
+            frappe.log(
+                f"Raven User `{user.name}` was already present in Channel "
+                f"`{sales_order.custom_raven_channel}`"
+            )
 
 
 def remove_assigned_user(doc, method=None):
