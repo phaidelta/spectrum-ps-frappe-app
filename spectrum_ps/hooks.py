@@ -9,7 +9,7 @@ app_license = "mit"
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["frappe/erpnext", "frappe/raven"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -86,8 +86,8 @@ app_license = "mit"
 # Installation
 # ------------
 
-# before_install = "spectrum_ps.install.before_install"
-# after_install = "spectrum_ps.install.after_install"
+# before_install = "spectrum_ps.setup.before_install"
+after_install = "spectrum_ps.setup.after_install"
 
 # Uninstallation
 # ------------
@@ -111,7 +111,7 @@ app_license = "mit"
 # before_app_uninstall = "spectrum_ps.utils.before_app_uninstall"
 # after_app_uninstall = "spectrum_ps.utils.after_app_uninstall"
 
-after_migrate = "spectrum_ps.permissions.setup_roles_and_permissions"
+after_migrate = "spectrum_ps.setup.after_migrate"
 
 # Build
 # ------------------
@@ -168,6 +168,7 @@ doc_events = {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_create",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_remove",
 		"on_update": "spectrum_ps.spectrum_ps.doc_events.sales_order.update_sales_order",
+		"before_validate": "spectrum_ps.spectrum_ps.doc_events.sales_order.before_validate",
 	},
 	"User": {"on_update": "spectrum_ps.spectrum_ps.doc_events.user.check_and_add_role"},
 	"ToDo": {
@@ -179,7 +180,12 @@ doc_events = {
 		"on_submit": "spectrum_ps.spectrum_ps.doc_events.sales_invoice.on_sales_invoice_submit"
 	},
 	"Raven Message": {
-		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp"
+		"before_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.validate_outbound_whatsapp",
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_message.send_outbound_whatsapp",
+	},
+	"Raven User": {
+		"after_insert": "spectrum_ps.spectrum_ps.doc_events.raven_user.add_to_workspace",
+		"on_trash": "spectrum_ps.spectrum_ps.doc_events.raven_user.remove_from_workspace",
 	},
 }
 
@@ -205,8 +211,73 @@ fixtures = [
 		"dt": "Role",
 		"filters": [["name", "in", ["Technician", "Spectrum PS User"]]],
 	},
+	{
+		"dt": "Workflow State",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Accepted",
+					"Assigned",
+					"Cancelled",
+					"Completed",
+					"In Progress",
+					"New",
+					"On Hold",
+					"Paid",
+					"Reopened",
+					"Resolved",
+				],
+			]
+		],
+	},
+	{
+		"dt": "Workflow Action Master",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Accept",
+					"Assign",
+					"Cancel",
+					"Confirm",
+					"Payment",
+					"Put on Hold",
+					"Reject",
+					"Reopen",
+					"Resolve",
+					"Review",
+					"Start Work",
+				],
+			]
+		],
+	},
+	{
+		"dt": "Workflow",
+		"filters": [["name", "in", ["Track status"]]],
+	},
+	{
+		"dt": "Notification",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Admin Notification - Ticket Created",
+					"Admin Notification - Work in Progress",
+					"Admin Notification - Work Resolved",
+					"Sales Order Aging",
+					"Payment confirmation",
+					"Sales invoice notification",
+					"Sales Order Completed",
+					"Sales Order Created",
+				],
+			]
+		],
+	},
 ]
-
 
 # Scheduled Tasks
 # ---------------

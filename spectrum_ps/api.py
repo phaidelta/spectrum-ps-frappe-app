@@ -406,6 +406,7 @@ def whatsapp_webhook(*args, **kwargs):
 			% (sender, body, str(ex))
 		)
 
+		# TODO: Use Redirect URL instead of hardcoding
 		message_content = "Hi! Welcome to Spectrum PS.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
 
 		_add_sent_outbound_queue(
@@ -425,6 +426,7 @@ def whatsapp_webhook(*args, **kwargs):
 	except NoActiveSalesOrdersException as ex:
 		logger.info("Phone number `%s` messaged us with no active Sales Order" % sender)
 
+		# TODO: Use Redirect URL instead of hardcoding
 		message_content = "Hi! You don't seem to have any active orders.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
 
 		_add_sent_outbound_queue(

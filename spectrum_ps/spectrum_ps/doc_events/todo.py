@@ -1,10 +1,7 @@
 import frappe
 from frappe import _
 
-from spectrum_ps.config import (
-    TECHNICIAN_INACTIVE_TICKET_STATES,
-    TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY,
-)
+from spectrum_ps.config import TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY
 from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
 from spectrum_ps.context_managers import as_user
 
@@ -63,28 +60,28 @@ def add_assigned_user(doc, method=None):
             )
         )
 
-    if (
-        sales_order.custom_ticket_status
-        in TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY
-    ):
-        frappe.log(
-            f"Updating Sales Order `{sales_order.name}` ticket status to Assigned"
-        )
-        sales_order.custom_ticket_status = "Assigned"
-        # TODO: Get the system manager user from config. This defaults to Administrator
-        with as_user(SYSTEM_MANAGER_USER):
-            sales_order.save(ignore_permissions=True)
+	if (
+		sales_order.custom_ticket_status
+		in TICKET_AUTO_CHANGE_TO_ASSIGNED_WHEN_TECHNICIAN_ASSIGNED_ONLY_IF_CURRENTLY
+	):
+		frappe.log(f"Updating Sales Order `{sales_order.name}` ticket status to Assigned")
+		sales_order.custom_ticket_status = "Assigned"
+		with as_user(SYSTEM_MANAGER_USER):
+			sales_order.save(ignore_permissions=True)
 
-    # TODO: Get the system manager user from config. This defaults to Administrator
-    with as_user(SYSTEM_MANAGER_USER):
-        frappe.call(
-            "raven.api.raven_channel_member.add_channel_members",
-            channel_id=sales_order.custom_raven_channel,
-            members=[assigned_to],
-        )
-    frappe.log(
-        f"Added Raven User `{user.name}` to Channel `{sales_order.custom_raven_channel}`"
-    )
+	with as_user(SYSTEM_MANAGER_USER):
+		try:
+			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
+			frappe.call(
+				"raven.api.raven_channel_member.add_channel_members",
+				channel_id=sales_order.custom_raven_channel,
+				members=[assigned_to],
+			)
+			frappe.log(f"Added Raven User `{user.name}` to Channel `{sales_order.custom_raven_channel}`")
+		except frappe.exceptions.DuplicateEntryError:
+			frappe.log(
+				f"Raven User `{user.name}` was already present in Channel `{sales_order.custom_raven_channel}`"
+			)
 
 
 def remove_assigned_user(doc, method=None):
@@ -116,16 +113,14 @@ def remove_assigned_user(doc, method=None):
         )
         return
 
-    with as_user(SYSTEM_MANAGER_USER):
-        # nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
-        frappe.call(
-            "raven.api.raven_channel_member.remove_channel_member",
-            user_id=assigned_to,
-            channel_id=sales_order.custom_raven_channel,
-        )
-        frappe.log(
-            f"Removed Raven User `{user.name}` from Channel `{sales_order.custom_raven_channel}`"
-        )
+	with as_user(SYSTEM_MANAGER_USER):
+		# nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
+		frappe.call(
+			"raven.api.raven_channel_member.remove_channel_member",
+			user_id=assigned_to,
+			channel_id=sales_order.custom_raven_channel,
+		)
+		frappe.log(f"Removed Raven User `{user.name}` from Channel `{sales_order.custom_raven_channel}`")
 
 
 def remove_assigned_user_on_cancel(doc, method=None):
