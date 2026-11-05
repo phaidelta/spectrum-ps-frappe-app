@@ -3,13 +3,13 @@ import json
 import frappe
 from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import (
-    enqueue_create_notification,
+	enqueue_create_notification,
 )
 
 from spectrum_ps.config import (
-    TEMPLATE_ORDER_COMPLETE,
-    TEMPLATE_ORDER_GREETINGS,
-    TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
+	TEMPLATE_ORDER_COMPLETE,
+	TEMPLATE_ORDER_GREETINGS,
+	TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
 )
 from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
 from spectrum_ps.config.logic_config import TECHNICIAN_INACTIVE_TICKET_STATES
@@ -19,404 +19,380 @@ from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
 
 
 def _get_customer_name(doc):
-    return (
-        frappe.db.get_value("Customer", doc.customer, "customer_name") or doc.customer
-    )
+	return frappe.db.get_value("Customer", doc.customer, "customer_name") or doc.customer
 
 
 def handle_completed(doc):
-    frappe.log(f"Sending Completion message to customer for {doc.name}..")
+	frappe.log(f"Sending Completion message to customer for {doc.name}..")
 
-    enqueue_outbound_sales_order_whatsapp_template(
-        doc,
-        doc.customer,
-        template_id=TEMPLATE_ORDER_COMPLETE,
-        message_id=f"{doc.name}-Sale-Order-Completion-Message",
-        content_variables={
-            "customer_name": _get_customer_name(doc),
-            "order_id": doc.name,
-        },
-    )
+	enqueue_outbound_sales_order_whatsapp_template(
+		doc,
+		doc.customer,
+		template_id=TEMPLATE_ORDER_COMPLETE,
+		message_id=f"{doc.name}-Sale-Order-Completion-Message",
+		content_variables={
+			"customer_name": _get_customer_name(doc),
+			"order_id": doc.name,
+		},
+	)
 
 
 def before_validate(doc):
-    # nosemgrep: frappe-semgrep-rules.rules.frappe-no-functional-code
-    doc.custom_ticket_type = json.dumps(
-        list(map(lambda x: x.item_name, doc.items))
-        if isinstance(doc.items, list)
-        else []
-    )
+	# nosemgrep: frappe-semgrep-rules.rules.frappe-no-functional-code
+	doc.custom_ticket_type = json.dumps(
+		list(map(lambda x: x.item_name, doc.items)) if isinstance(doc.items, list) else []
+	)
 
 
 def handle_assignment(doc):
-    frappe.log("Sending Notification to send assigned Technician")
-    technician = doc.flags.get("assigned_to")
+	frappe.log("Sending Notification to send assigned Technician")
+	technician = doc.flags.get("assigned_to")
 
-    if not technician:
-        assignees = frappe.parse_json(
-            frappe.db.get_value("Sales Order", doc.name, "_assign") or "[]"
-        )
-        technician = assignees[0] if assignees else None
+	if not technician:
+		assignees = frappe.parse_json(frappe.db.get_value("Sales Order", doc.name, "_assign") or "[]")
+		technician = assignees[0] if assignees else None
 
-    if not technician:
-        frappe.log(f"Sales Order `{doc.name}` is Assigned but has no Assignee")
-        return
+	if not technician:
+		frappe.log(f"Sales Order `{doc.name}` is Assigned but has no Assignee")
+		return
 
-    priority = doc.get("custom_priority") or "Medium"
-    msg = f"Ticket {doc.name} has been assigned to you. Priority - {priority}"
-    frappe.log(f"Sending Assignment notification for {doc.name} to {technician}")
+	priority = doc.get("custom_priority") or "Medium"
+	msg = f"Ticket {doc.name} has been assigned to you. Priority - {priority}"
+	frappe.log(f"Sending Assignment notification for {doc.name} to {technician}")
 
-    enqueue_create_notification(
-        [technician],
-        {
-            "type": "Alert",
-            "subject": msg,
-            "document_type": "Sales Order",
-            "document_name": doc.name,
-            "from_user": frappe.session.user,
-        },
-    )
+	enqueue_create_notification(
+		[technician],
+		{
+			"type": "Alert",
+			"subject": msg,
+			"document_type": "Sales Order",
+			"document_name": doc.name,
+			"from_user": frappe.session.user,
+		},
+	)
 
 
 def handle_accepted(doc):
-    assigness = frappe.parse_json(
-        frappe.db.get_value("Sales Order", doc.name, "_assign") or "[]"
-    )
-    if not assigness:
-        frappe.log(
-            f"Sales Order `{doc.name}` accepted but has no assignee; skipping customer message"
-        )
-        return
+	assigness = frappe.parse_json(frappe.db.get_value("Sales Order", doc.name, "_assign") or "[]")
+	if not assigness:
+		frappe.log(f"Sales Order `{doc.name}` accepted but has no assignee; skipping customer message")
+		return
 
-    technician = assigness[0]
-    technician_name = frappe.db.get_value("User", technician, "full_name") or technician
+	technician = assigness[0]
+	technician_name = frappe.db.get_value("User", technician, "full_name") or technician
 
-    frappe.log(f"Sending Technician-assigned message to customer for {doc.name}..")
+	frappe.log(f"Sending Technician-assigned message to customer for {doc.name}..")
 
-    enqueue_outbound_sales_order_whatsapp_template(
-        doc,
-        doc.customer,
-        template_id=TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
-        message_id=f"{doc.name}-Sale-Order-Assignment-Message",
-        content_variables={
-            "customer_name": _get_customer_name(doc),
-            "technician_name": technician_name,
-            "order_id": doc.name,
-        },
-    )
+	enqueue_outbound_sales_order_whatsapp_template(
+		doc,
+		doc.customer,
+		template_id=TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
+		message_id=f"{doc.name}-Sale-Order-Assignment-Message",
+		content_variables={
+			"customer_name": _get_customer_name(doc),
+			"technician_name": technician_name,
+			"order_id": doc.name,
+		},
+	)
 
 
 def bot_add_to_channel(bot, channel_id: str) -> str:
-    """
-    Add the bot to a channel as a member
+	"""
+	Add the bot to a channel as a member
 
-    If the bot is already a member of the channel, this function does nothing
+	If the bot is already a member of the channel, this function does nothing
 
-    Returns the member_id of the bot in the channel
-    """
+	Returns the member_id of the bot in the channel
+	"""
 
-    existing_member = bot.is_member(channel_id)
+	existing_member = bot.is_member(channel_id)
 
-    if not existing_member:
-        raven_channel_member = frappe.get_doc(
-            doctype="Raven Channel Member",
-            user_id=bot.raven_user,
-            channel_id=channel_id,
-        )
-        raven_channel_member.insert(ignore_permissions=True)
-        return raven_channel_member.name
-    else:
-        return existing_member
+	if not existing_member:
+		raven_channel_member = frappe.get_doc(
+			doctype="Raven Channel Member",
+			user_id=bot.raven_user,
+			channel_id=channel_id,
+		)
+		raven_channel_member.insert(ignore_permissions=True)
+		return raven_channel_member.name
+	else:
+		return existing_member
 
 
 def ensure_customer_has_bot(customer):
-    if not customer.custom_raven_bot:
-        frappe.log(f"Customer `{customer.name}` has no linked Raven Bot. Creating...")
-        create_customer_bot(customer, None)
-        # frappe.throw(
-        # 	_("Customer {0} must have a Raven Bot before creating a Sales Order.").format(customer.name)
-        # )
+	if not customer.custom_raven_bot:
+		frappe.log(f"Customer `{customer.name}` has no linked Raven Bot. Creating...")
+		create_customer_bot(customer, None)
+		# frappe.throw(
+		# 	_("Customer {0} must have a Raven Bot before creating a Sales Order.").format(customer.name)
+		# )
 
-    elif not frappe.db.exists("Raven Bot", customer.custom_raven_bot):
-        frappe.log(
-            f"Linked Raven Bot `{customer.custom_raven_bot}` does not exist for Customer `{customer.name}`. Creating..."
-        )
-        create_customer_bot(customer, None)
-        # frappe.throw(
-        # 	_("Raven Bot {0} linked to Customer {1} does not exist.").format(
-        # 		customer.custom_raven_bot, customer.name
-        # 	)
-        # )
+	elif not frappe.db.exists("Raven Bot", customer.custom_raven_bot):
+		frappe.log(
+			f"Linked Raven Bot `{customer.custom_raven_bot}` does not exist for Customer `{customer.name}`. Creating..."
+		)
+		create_customer_bot(customer, None)
+		# frappe.throw(
+		# 	_("Raven Bot {0} linked to Customer {1} does not exist.").format(
+		# 		customer.custom_raven_bot, customer.name
+		# 	)
+		# )
 
-    return customer.custom_raven_bot
+	return customer.custom_raven_bot
 
 
 def handle_sales_order_create(doc, method=None):
-    frappe.log(f"Creating or updating Raven channel for Sales Order `{doc.name}`")
-    workspace = "Customer communications"
-    channel_name = doc.name
-    existing_channel_name = frappe.db.exists(
-        "Raven Channel",
-        {"channel_name": channel_name, "workspace": workspace},
-    )
+	frappe.log(f"Creating or updating Raven channel for Sales Order `{doc.name}`")
+	workspace = "Customer communications"
+	channel_name = doc.name
+	existing_channel_name = frappe.db.exists(
+		"Raven Channel",
+		{"channel_name": channel_name, "workspace": workspace},
+	)
 
-    if existing_channel_name:
-        frappe.log(
-            f"Using existing Raven Channel `{existing_channel_name}` for Sales Order `{doc.name}`"
-        )
-        raven_channel = frappe.get_doc("Raven Channel", existing_channel_name)
-    else:
-        with as_user(SYSTEM_MANAGER_USER):
-            frappe.log(
-                f"Creating Raven Channel `{channel_name}` for Sales Order `{doc.name}`"
-            )
-            raven_channel = frappe.get_doc(
-                {
-                    "doctype": "Raven Channel",
-                    "workspace": workspace,
-                    "channel_name": channel_name,
-                    "type": "Public",
-                }
-            )
-            raven_channel.insert(ignore_permissions=True)
+	if existing_channel_name:
+		frappe.log(f"Using existing Raven Channel `{existing_channel_name}` for Sales Order `{doc.name}`")
+		raven_channel = frappe.get_doc("Raven Channel", existing_channel_name)
+	else:
+		with as_user(SYSTEM_MANAGER_USER):
+			frappe.log(f"Creating Raven Channel `{channel_name}` for Sales Order `{doc.name}`")
+			raven_channel = frappe.get_doc(
+				{
+					"doctype": "Raven Channel",
+					"workspace": workspace,
+					"channel_name": channel_name,
+					"type": "Public",
+				}
+			)
+			raven_channel.insert(ignore_permissions=True)
 
-    with as_user(SYSTEM_MANAGER_USER):
-        frappe.log(
-            f"Linking raven channel {raven_channel.name} to Sales Order {doc.name}"
-        )
-        doc.custom_raven_channel = raven_channel.name
-        doc.save(ignore_permissions=True)
+	with as_user(SYSTEM_MANAGER_USER):
+		frappe.log(f"Linking raven channel {raven_channel.name} to Sales Order {doc.name}")
+		doc.custom_raven_channel = raven_channel.name
+		doc.save(ignore_permissions=True)
 
-    settings = frappe.get_single("Spectrum PS Ticket Settings")
-    users_to_add = {
-        user.user for user in settings.users_to_add_to_chat_channels if user.user
-    }
-    if settings.add_all_administrators:
-        users_to_add.update(
-            frappe.get_all(
-                "Has Role",
-                filters={"role": "Administrator", "parenttype": "User"},
-                pluck="parent",
-            )
-        )
-        # TODO: Split this off into its own toggle
-        users_to_add.update(
-            frappe.get_all(
-                "Has Role",
-                filters={"role": "System Manager", "parenttype": "User"},
-                pluck="parent",
-            )
-        )
+	settings = frappe.get_single("Spectrum PS Ticket Settings")
+	users_to_add = {user.user for user in settings.users_to_add_to_chat_channels if user.user}
+	if settings.add_all_administrators:
+		users_to_add.update(
+			frappe.get_all(
+				"Has Role",
+				filters={"role": "Administrator", "parenttype": "User"},
+				pluck="parent",
+			)
+		)
+		# TODO: Split this off into its own toggle
+		users_to_add.update(
+			frappe.get_all(
+				"Has Role",
+				filters={"role": "System Manager", "parenttype": "User"},
+				pluck="parent",
+			)
+		)
 
-    existing_members = set(
-        frappe.get_all(
-            "Raven Channel Member",
-            filters={"channel_id": raven_channel.name},
-            pluck="user_id",
-        )
-    )
-    members_to_add = sorted(users_to_add - existing_members)
-    raven_users = (
-        set(
-            frappe.get_all(
-                "Raven User",
-                filters={"name": ["in", members_to_add]},
-                pluck="name",
-            )
-        )
-        if members_to_add
-        else set()
-    )
-    users_without_raven_user = sorted(set(members_to_add) - raven_users)
-    members_to_add = sorted(raven_users)
-    if members_to_add:
-        with as_user(SYSTEM_MANAGER_USER):
-            # nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
-            frappe.call(
-                "raven.api.raven_channel_member.add_channel_members",
-                channel_id=raven_channel.name,
-                members=members_to_add,
-            )
-        frappe.logger("spectrum_ps").info(
-            "Added Raven Users %s to channel %s for Sales Order %s",
-            members_to_add,
-            raven_channel.name,
-            doc.name,
-        )
-    if users_without_raven_user:
-        frappe.logger("spectrum_ps").warning(
-            "Did not add users without a Raven User record to channel %s for Sales Order %s: %s",
-            raven_channel.name,
-            doc.name,
-            users_without_raven_user,
-        )
+	existing_members = set(
+		frappe.get_all(
+			"Raven Channel Member",
+			filters={"channel_id": raven_channel.name},
+			pluck="user_id",
+		)
+	)
+	members_to_add = sorted(users_to_add - existing_members)
+	raven_users = (
+		set(
+			frappe.get_all(
+				"Raven User",
+				filters={"name": ["in", members_to_add]},
+				pluck="name",
+			)
+		)
+		if members_to_add
+		else set()
+	)
+	users_without_raven_user = sorted(set(members_to_add) - raven_users)
+	members_to_add = sorted(raven_users)
+	if members_to_add:
+		with as_user(SYSTEM_MANAGER_USER):
+			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
+			frappe.call(
+				"raven.api.raven_channel_member.add_channel_members",
+				channel_id=raven_channel.name,
+				members=members_to_add,
+			)
+		frappe.logger("spectrum_ps").info(
+			"Added Raven Users %s to channel %s for Sales Order %s",
+			members_to_add,
+			raven_channel.name,
+			doc.name,
+		)
+	if users_without_raven_user:
+		frappe.logger("spectrum_ps").warning(
+			"Did not add users without a Raven User record to channel %s for Sales Order %s: %s",
+			raven_channel.name,
+			doc.name,
+			users_without_raven_user,
+		)
 
-    if not doc.customer:
-        frappe.log(f"Sales Order `{doc.name}` has no Customer linked")
-        frappe.throw(
-            _(
-                "Sales Order {0} must have a Customer before creating its Raven Channel."
-            ).format(doc.name)
-        )
+	if not doc.customer:
+		frappe.log(f"Sales Order `{doc.name}` has no Customer linked")
+		frappe.throw(
+			_("Sales Order {0} must have a Customer before creating its Raven Channel.").format(doc.name)
+		)
 
-    frappe.log(f"Looking up Customer `{doc.customer}` for Sales Order `{doc.name}`")
-    customer = frappe.get_cached_doc("Customer", doc.customer)
+	frappe.log(f"Looking up Customer `{doc.customer}` for Sales Order `{doc.name}`")
+	customer = frappe.get_cached_doc("Customer", doc.customer)
 
-    active_sales_order = customer.custom_active_sales_order
-    if active_sales_order and active_sales_order != doc.name:
-        active_order = frappe.db.get_value(
-            "Sales Order",
-            active_sales_order,
-            ["docstatus", "custom_ticket_status"],
-            as_dict=True,
-        )
-        if (
-            active_order
-            and active_order.docstatus != 2
-            and active_order.custom_ticket_status not in {"Paid", "Cancelled"}
-        ):
-            frappe.log(
-                f"Keeping active Sales Order `{active_sales_order}` for Customer `{customer.name}`"
-            )
-        else:
-            customer.custom_active_sales_order = doc.name
-            with as_user(SYSTEM_MANAGER_USER):
-                customer.save(ignore_permissions=True)
-    elif not active_sales_order:
-        customer.custom_active_sales_order = doc.name
-        with as_user(SYSTEM_MANAGER_USER):
-            customer.save(ignore_permissions=True)
+	active_sales_order = customer.custom_active_sales_order
+	if active_sales_order and active_sales_order != doc.name:
+		active_order = frappe.db.get_value(
+			"Sales Order",
+			active_sales_order,
+			["docstatus", "custom_ticket_status"],
+			as_dict=True,
+		)
+		if (
+			active_order
+			and active_order.docstatus != 2
+			and active_order.custom_ticket_status not in {"Paid", "Cancelled"}
+		):
+			frappe.log(f"Keeping active Sales Order `{active_sales_order}` for Customer `{customer.name}`")
+		else:
+			customer.custom_active_sales_order = doc.name
+			with as_user(SYSTEM_MANAGER_USER):
+				customer.save(ignore_permissions=True)
+	elif not active_sales_order:
+		customer.custom_active_sales_order = doc.name
+		with as_user(SYSTEM_MANAGER_USER):
+			customer.save(ignore_permissions=True)
 
-    # Get Raven Bot associated with the customer
-    with as_user(SYSTEM_MANAGER_USER):
-        bot = ensure_customer_has_bot(customer)
+	# Get Raven Bot associated with the customer
+	with as_user(SYSTEM_MANAGER_USER):
+		bot = ensure_customer_has_bot(customer)
 
-    frappe.log(f"Adding Raven Bot `{bot}` to Channel `{raven_channel.name}`")
-    bot_user = frappe.get_cached_doc("Raven Bot", bot)
-    with as_user(SYSTEM_MANAGER_USER):
-        bot_add_to_channel(bot_user, raven_channel.name)
+	frappe.log(f"Adding Raven Bot `{bot}` to Channel `{raven_channel.name}`")
+	bot_user = frappe.get_cached_doc("Raven Bot", bot)
+	with as_user(SYSTEM_MANAGER_USER):
+		bot_add_to_channel(bot_user, raven_channel.name)
 
-    frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
+	frappe.log(f"Added Raven Bot `{bot_user.name}` to Channel `{raven_channel.name}`")
 
-    # TODO: Add Realtor's bot
+	# TODO: Add Realtor's bot
 
-    # Send WhatsApp message to the customer for onboarding
-    template_params = {
-        "customer_name": customer.customer_name,
-        "order_id": doc.name,
-        "company_name": "Spectrum PS",
-    }
+	# Send WhatsApp message to the customer for onboarding
+	template_params = {
+		"customer_name": customer.customer_name,
+		"order_id": doc.name,
+		"company_name": "Spectrum PS",
+	}
 
-    frappe.log("Sending welcome message to customer...")
-    enqueue_outbound_sales_order_whatsapp_template(
-        doc.name,
-        doc.customer,
-        message_id=f"{doc.name}-welcome-message",
-        template_id=TEMPLATE_ORDER_GREETINGS,
-        content_variables=template_params,
-    )
+	frappe.log("Sending welcome message to customer...")
+	enqueue_outbound_sales_order_whatsapp_template(
+		doc.name,
+		doc.customer,
+		message_id=f"{doc.name}-welcome-message",
+		template_id=TEMPLATE_ORDER_GREETINGS,
+		content_variables=template_params,
+	)
 
 
 def handle_sales_order_remove(doc, method=None):
-    channel_name = getattr(doc, "custom_raven_channel", None)
-    if not channel_name:
-        frappe.log(f"Sales Order `{doc.name}` has no Raven Channel to remove")
-        return
+	channel_name = getattr(doc, "custom_raven_channel", None)
+	if not channel_name:
+		frappe.log(f"Sales Order `{doc.name}` has no Raven Channel to remove")
+		return
 
-    if not frappe.db.exists("Raven Channel", channel_name):
-        frappe.log(
-            f"Raven Channel `{channel_name}` for Sales Order `{doc.name}` was already removed"
-        )
-        return
+	if not frappe.db.exists("Raven Channel", channel_name):
+		frappe.log(f"Raven Channel `{channel_name}` for Sales Order `{doc.name}` was already removed")
+		return
 
-    frappe.log(f"Removing Raven Channel `{channel_name}` for Sales Order `{doc.name}`")
-    with as_user(SYSTEM_MANAGER_USER):
-        frappe.get_doc("Raven Channel", channel_name).delete(ignore_permissions=True)
+	frappe.log(f"Removing Raven Channel `{channel_name}` for Sales Order `{doc.name}`")
+	with as_user(SYSTEM_MANAGER_USER):
+		frappe.get_doc("Raven Channel", channel_name).delete(ignore_permissions=True)
 
 
 def remove_technicians_on_complete(doc, method=None):
-    if doc.get("custom_ticket_status") not in TECHNICIAN_INACTIVE_TICKET_STATES:
-        return
+	if doc.get("custom_ticket_status") not in TECHNICIAN_INACTIVE_TICKET_STATES:
+		return
 
-    channel_id = doc.get("custom_raven_channel")
+	channel_id = doc.get("custom_raven_channel")
 
-    if not channel_id or not frappe.db.exists("Raven Channel", channel_id):
-        return
+	if not channel_id or not frappe.db.exists("Raven Channel", channel_id):
+		return
 
-    assignments = frappe.get_all(
-        "ToDo",
-        filters={
-            "reference_type": "Sales Order",
-            "reference_name": doc.name,
-            "allocated_to": ["is", "set"],
-            "status": ["!=", "Cancelled"],
-        },
-        fields=["allocated_to"],
-    )
+	assignments = frappe.get_all(
+		"ToDo",
+		filters={
+			"reference_type": "Sales Order",
+			"reference_name": doc.name,
+			"allocated_to": ["is", "set"],
+			"status": ["!=", "Cancelled"],
+		},
+		fields=["allocated_to"],
+	)
 
-    # Only remove users explicitly registered as technicians.
-    for assignment in assignments:
-        user_id = assignment.get("allocated_to")
+	# Only remove users explicitly registered as technicians.
+	for assignment in assignments:
+		user_id = assignment.get("allocated_to")
 
-        if not user_id:
-            continue
+		if not user_id:
+			continue
 
-        is_technician = frappe.db.exists("Technician", {"user": user_id})
+		is_technician = frappe.db.exists("Technician", {"user": user_id})
 
-        if not is_technician:
-            continue
+		if not is_technician:
+			continue
 
-        if not frappe.db.exists("Raven User", user_id):
-            continue
+		if not frappe.db.exists("Raven User", user_id):
+			continue
 
-        if not frappe.db.exists(
-            "Raven Channel Member",
-            {"channel_id": channel_id, "user_id": user_id},
-        ):
-            continue
+		if not frappe.db.exists(
+			"Raven Channel Member",
+			{"channel_id": channel_id, "user_id": user_id},
+		):
+			continue
 
-        try:
-            from raven.api.raven_channel_member import remove_channel_member
+		try:
+			from raven.api.raven_channel_member import remove_channel_member
 
-            with as_user(SYSTEM_MANAGER_USER):
-                remove_channel_member(
-                    user_id=user_id,
-                    channel_id=channel_id,
-                )
+			with as_user(SYSTEM_MANAGER_USER):
+				remove_channel_member(
+					user_id=user_id,
+					channel_id=channel_id,
+				)
 
-            frappe.logger("spectrum_ps").info(
-                "Removed technician %s from inactive Sales Order channel %s",
-                user_id,
-                channel_id,
-            )
+			frappe.logger("spectrum_ps").info(
+				"Removed technician %s from inactive Sales Order channel %s",
+				user_id,
+				channel_id,
+			)
 
-        except Exception:
-            frappe.log_error(
-                frappe.get_traceback(),
-                f"Failed removing technician {user_id} from channel {channel_id}",
-            )
+		except Exception:
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Failed removing technician {user_id} from channel {channel_id}",
+			)
 
 
 def update_sales_order(doc, method=None):
-    """Sales Order saved: Compare with the previous saved state and route to the right handler."""
+	"""Sales Order saved: Compare with the previous saved state and route to the right handler."""
 
-    before = doc.get_doc_before_save()
+	before = doc.get_doc_before_save()
 
-    old_status = before.get("custom_ticket_status") if before else None
-    new_status = doc.get("custom_ticket_status")
+	old_status = before.get("custom_ticket_status") if before else None
+	new_status = doc.get("custom_ticket_status")
 
-    # Remove channel membership on transition into an inactive state.
-    if new_status in TECHNICIAN_INACTIVE_TICKET_STATES and old_status != new_status:
-        remove_technicians_on_complete(doc, method)
+	# Remove channel membership on transition into an inactive state.
+	if new_status in TECHNICIAN_INACTIVE_TICKET_STATES and old_status != new_status:
+		remove_technicians_on_complete(doc, method)
 
-    # Preserve existing workflow notification behavior.
-    if old_status == new_status:
-        return
+	# Preserve existing workflow notification behavior.
+	if old_status == new_status:
+		return
 
-    if new_status == "Completed":
-        handle_completed(doc)
-    elif new_status == "Assigned":
-        handle_assignment(doc)
+	if new_status == "Completed":
+		handle_completed(doc)
+	elif new_status == "Assigned":
+		handle_assignment(doc)
 
-    elif new_status == "Accepted":
-        handle_accepted(doc)
+	elif new_status == "Accepted":
+		handle_accepted(doc)
