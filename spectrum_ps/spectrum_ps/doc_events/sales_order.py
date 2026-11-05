@@ -2,7 +2,9 @@ import json
 
 import frappe
 from frappe import _
-from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+from frappe.desk.doctype.notification_log.notification_log import (
+	enqueue_create_notification,
+)
 
 from spectrum_ps.config import (
 	TEMPLATE_ORDER_COMPLETE,
@@ -107,7 +109,9 @@ def bot_add_to_channel(bot, channel_id: str) -> str:
 
 	if not existing_member:
 		raven_channel_member = frappe.get_doc(
-			doctype="Raven Channel Member", user_id=bot.raven_user, channel_id=channel_id
+			doctype="Raven Channel Member",
+			user_id=bot.raven_user,
+			channel_id=channel_id,
 		)
 		raven_channel_member.insert(ignore_permissions=True)
 		return raven_channel_member.name
