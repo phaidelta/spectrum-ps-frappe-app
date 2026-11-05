@@ -27,16 +27,24 @@ def add_assigned_user(doc, method=None):
 		frappe.log(f"ToDo `{doc.name}` references missing Sales Order `{doc.reference_name}`")
 		frappe.throw(_("ToDo {0} references a missing Sales Order.").format(doc.name))
 
-	sales_order = frappe.get_cached_doc(doc.reference_type, doc.reference_name)
+	# Always fetch the latest ticket status directly from the database.
+	ticket_status = frappe.db.get_value(
+		"Sales Order",
+		doc.reference_name,
+		"custom_ticket_status",
+	)
 
 	# Do not re-add technicians to inactive Sales Order channels.
-	if sales_order.custom_ticket_status in TECHNICIAN_INACTIVE_TICKET_STATES:
-		frappe.log(
-			f"Skipping Raven channel addition for `{assigned_to}` "
-			f"because Sales Order `{sales_order.name}` is "
-			f"{sales_order.custom_ticket_status}"
+	if ticket_status in TECHNICIAN_INACTIVE_TICKET_STATES:
+		frappe.logger("spectrum_ps").warning(
+			"Skipping technician %s addition to Raven channel: Sales Order %s has inactive status %s",
+			assigned_to,
+			doc.reference_name,
+			ticket_status,
 		)
 		return
+
+	sales_order = frappe.get_cached_doc("Sales Order", doc.reference_name)
 
 	# TODO: Prevent multiple technicians from being assigned
 	# to the same Sales Order.
@@ -93,7 +101,7 @@ def remove_assigned_user(doc, method=None):
 		frappe.log(f"ToDo `{doc.name}` references missing Sales Order `{doc.reference_name}`")
 		frappe.throw(_("ToDo {0} references a missing Sales Order.").format(doc.name))
 
-	sales_order = frappe.get_cached_doc(doc.reference_type, doc.reference_name)
+	sales_order = frappe.get_cached_doc("Sales Order", doc.reference_name)
 
 	if not sales_order.custom_raven_channel:
 		frappe.log(f"Sales Order `{sales_order.name}` has no Raven Channel linked; nothing to remove")
