@@ -101,7 +101,7 @@ def remove_assigned_user(doc, method=None):
 		frappe.log(f"ToDo `{doc.name}` references missing Sales Order `{doc.reference_name}`")
 		frappe.throw(_("ToDo {0} references a missing Sales Order.").format(doc.name))
 
-	sales_order = frappe.get_cached_doc("Sales Order", doc.reference_name)
+	sales_order = frappe.get_cached_doc(doc.reference_type, doc.reference_name)
 
 	if not sales_order.custom_raven_channel:
 		frappe.log(f"Sales Order `{sales_order.name}` has no Raven Channel linked; nothing to remove")
