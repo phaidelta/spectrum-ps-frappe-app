@@ -5,7 +5,7 @@ from ..utils import get_cached_doc_or_none
 
 
 def _as_chat_ticket(so_doc, address_doc, todo_doc):
-	work_type = "/".join(item.item_code for item in so_doc.items if item.item_code)
+	work_type = "/".join(item.item_name for item in so_doc.items if item.item_code)
 	address = (
 		", ".join(part for part in (address_doc.address_line1, address_doc.city) if part)
 		if address_doc is not None
