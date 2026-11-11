@@ -1,0 +1,38 @@
+[
+  {
+    "doctype": "Dashboard",
+    "name": "Spectrum PS Dashboard",
+    "dashboard_name": "Spectrum PS Dashboard",
+    "is_default": 0,
+    "is_standard": 0,
+    "charts": [
+      { "chart": "Tickets Over Time", "width": "Half" },
+      { "chart": "Tickets by Status", "width": "Half" }
+    ],
+    "cards": [
+      { "card": "New Tickets" },
+      { "card": "Ongoing Tickets" },
+      { "card": "Resolved" },
+      { "card": "New Customers" }
+    ]
+  },
+  {
+    "doctype": "Dashboard",
+    "name": "Spectrum PS Dashboard SalesOrder",
+    "dashboard_name": "Spectrum PS Dashboard SalesOrder",
+    "is_default": 0,
+    "is_standard": 0,
+    "charts": [
+      { "chart": "Ticket by Status", "width": "Half" },
+      { "chart": "Ticket Over Time", "width": "Half" },
+      { "chart": "Payments Revenue Over Time", "width": "Half" }
+    ],
+    "cards": [
+      { "card": "New Ticket" },
+      { "card": "Ongoing Ticket" },
+      { "card": "Completed" },
+      { "card": "Active Customers" },
+      { "card": "Total Incoming Payment" }
+    ]
+  }
+]

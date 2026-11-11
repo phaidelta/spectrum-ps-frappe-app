@@ -192,6 +192,10 @@ doc_events = {
 
 fixtures = [
 	{
+		"dt": "Dashboard",
+		"filters": [["name", "in", ["Spectrum PS Dashboard", "Spectrum PS Dashboard SalesOrder"]]],
+	},
+	{
 		"dt": "Custom Field",
 		"filters": [
 			[

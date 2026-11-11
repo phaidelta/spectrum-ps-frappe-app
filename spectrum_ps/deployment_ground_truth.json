@@ -62,6 +62,10 @@
     ]
   },
   "fixture_records": {
+    "Dashboard": [
+      "Spectrum PS Dashboard",
+      "Spectrum PS Dashboard SalesOrder"
+    ],
     "Notification": [
       "Admin Notification - Ticket Created",
       "Admin Notification - Work in Progress",
