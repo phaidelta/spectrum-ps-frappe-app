@@ -1,6 +1,7 @@
 import json
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
+from xml.sax.saxutils import escape
 
 import frappe
 from frappe import _
@@ -16,7 +17,11 @@ from frappe.utils.oauth import (
 )
 from werkzeug.wrappers import Response
 
-from spectrum_ps.customer_bot import get_raven_channel_and_sales_order, handle_incoming_message
+from spectrum_ps.customer_bot import (
+	get_raven_channel_and_sales_order,
+	handle_incoming_message,
+)
+from spectrum_ps.messaging import get_customer_by_whatsapp
 
 from .config import ALLOWED_PROVIDERS, INACTIVE_TICKET_STATUSES
 from .exceptions import NoActiveSalesOrdersException, NonExistentCustomerError
@@ -109,7 +114,9 @@ def _generate_temporary_login_link(email: str, expiry: int):
 def _get_mail_group_recipients(email_group: str):
 	# Fetch members from mailing group
 	members = frappe.get_all(
-		"Email Group Member", filters={"email_group": email_group, "unsubscribed": 0}, pluck="email"
+		"Email Group Member",
+		filters={"email_group": email_group, "unsubscribed": 0},
+		pluck="email",
 	)
 	return members
 
@@ -340,22 +347,22 @@ def whatsapp_webhook(*args, **kwargs):
 	request_url = getattr(frappe.request, "url", "") if frappe.request else ""
 	form = frappe.form_dict or {}
 
-	# TODO: Signature checks are failing
-	frappe.log("Twilio sig check:")
-	frappe.log(str(request_url))
-	frappe.log(str(form))
+	# TODO: Signature validation is currently disabled because the existing
+	# validation is failing. Fix the configured webhook URL before enabling it.
+	#
 	# if request_url and not validate_webhook_signature(request_url, form):
 	# 	frappe.throw(_("Invalid Twilio signature"), frappe.PermissionError)
 
 	sender = (form.get("From") or "").strip()
-	# profile_name = (form.get("ProfileName") or sender).strip()
 	body = (form.get("Body") or "").strip()
 	message_sid = form.get("MessageSid")
+	button_payload = form.get("ButtonPayload")
 
 	if not sender:
 		frappe.throw(_("Missing WhatsApp sender"))
 
-	if not body:
+	# Button replies may contain ButtonPayload without a Body.
+	if not body and not button_payload:
 		return Response(
 			'<?xml version="1.0" encoding="UTF-8"?><Response />',
 			content_type="application/xml",
@@ -368,28 +375,43 @@ def whatsapp_webhook(*args, **kwargs):
 		inbound_msg_doc.payload = dict(form)
 
 		try:
-			channel_id, _so_name, customer = get_raven_channel_and_sales_order(sender)
+			# Resolve the customer first. Do not require an active Sales Order
+			# before processing a reply to an older ticket.
+			customer = get_customer_by_whatsapp(sender)
 
 			inbound_msg_doc.sender = customer.name
 			inbound_msg_doc.message = body
 
-			# Directly handle the request
-			if (response := handle_incoming_message(form, customer)) is not None:
-				_add_sent_outbound_queue(recipient=customer.name, message=response)
+			# Process supported WhatsApp button replies first.
+			response = handle_incoming_message(form, customer)
 
-				# TODO: Properly escape the string to prevent issues
+			if response is not None:
+				_add_sent_outbound_queue(
+					recipient=customer.name,
+					message=response,
+				)
+
 				return Response(
-					'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
-					% response,
+					'<?xml version="1.0" encoding="UTF-8"?>'
+					"<Response><Message>%s</Message></Response>" % escape(response),
 					content_type="application/xml",
 				)
 
-			raven_text = body
+			# Normal incoming messages require an active Sales Order.
+			channel_id, _so_name, _customer = get_raven_channel_and_sales_order(sender)
+
 			frappe.flags.in_whatsapp_webhook = True
+
 			try:
 				bot = frappe.get_doc("Raven Bot", customer.custom_raven_bot)
-				raven_response = bot.send_message(channel_id=channel_id, text=raven_text)
+
+				raven_response = bot.send_message(
+					channel_id=channel_id,
+					text=body,
+				)
+
 				inbound_msg_doc.raven_message = raven_response
+
 			finally:
 				frappe.flags.in_whatsapp_webhook = False
 
@@ -397,46 +419,55 @@ def whatsapp_webhook(*args, **kwargs):
 				'<?xml version="1.0" encoding="UTF-8"?><Response />',
 				content_type="application/xml",
 			)
+
 		finally:
+			# Preserve the inbound request for debugging and auditing.
 			inbound_msg_doc.insert(ignore_permissions=True)
 
 	except NonExistentCustomerError as ex:
 		logger.info(
-			"Got a non-existent customer message from `%s`, message: `%s`\nlog message: %s"
-			% (sender, body, str(ex))
+			"Got a non-existent customer message from `%s`, message: `%s`; log message: %s",
+			sender,
+			body,
+			str(ex),
 		)
 
-		# TODO: Use Redirect URL instead of hardcoding
-		message_content = "Hi! Welcome to Spectrum PS.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
+		message_content = (
+			"Hi! Welcome to Spectrum PS.\n"
+			"You can visit our website at "
+			"https://spectrum-ps.uat.phaidelta.com and create an order."
+		)
 
 		_add_sent_outbound_queue(
 			recipient=None,
 			message=message_content,
 		)
 
-		# TODO: Handle this by sending notification to Admin
-
-		# TODO: Properly escape the string to prevent issues
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
-			% message_content,
+			'<?xml version="1.0" encoding="UTF-8"?>'
+			"<Response><Message>%s</Message></Response>" % escape(message_content),
 			content_type="application/xml",
 		)
 
 	except NoActiveSalesOrdersException as ex:
-		logger.info("Phone number `%s` messaged us with no active Sales Order" % sender)
+		logger.info(
+			"Phone number `%s` messaged us with no active Sales Order",
+			sender,
+		)
 
-		# TODO: Use Redirect URL instead of hardcoding
-		message_content = "Hi! You don't seem to have any active orders.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
+		message_content = (
+			"Hi! You don't seem to have any active orders.\n"
+			"You can visit our website at "
+			"https://spectrum-ps.uat.phaidelta.com and create an order."
+		)
 
 		_add_sent_outbound_queue(
 			recipient=ex.customer.name,
 			message=message_content,
 		)
 
-		# TODO: Properly escape the string to prevent issues
 		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
-			% message_content,
+			'<?xml version="1.0" encoding="UTF-8"?>'
+			"<Response><Message>%s</Message></Response>" % escape(message_content),
 			content_type="application/xml",
 		)

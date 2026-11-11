@@ -8,11 +8,28 @@ from .exceptions import NoActiveSalesOrdersException
 from .messaging import get_active_sales_order_for_customer, get_customer_by_whatsapp
 
 
-def get_customer_recent_so(customer):
-	try:
-		return frappe.get_last_doc("Sales Order", {"customer": customer.name})
-	except frappe.DoesNotExistError:
-		pass
+def get_sales_order_by_twilio_sid(message_sid: str, customer):
+	"""Return the Sales Order associated with the original outbound WhatsApp message."""
+
+	if not message_sid:
+		return None
+
+	sales_order_name = frappe.db.get_value(
+		"Customer Message Outbound Queue",
+		{"twilio_message_sid": message_sid},
+		"sales_order",
+	)
+
+	if not sales_order_name:
+		return None
+
+	sales_order = get_cached_doc_or_none("Sales Order", sales_order_name)
+
+	# Do not disclose a Sales Order belonging to another customer.
+	if not sales_order or sales_order.customer != customer.name:
+		return None
+
+	return sales_order
 
 
 def get_raven_channel_and_sales_order(sender_phone: str):
@@ -23,57 +40,68 @@ def get_raven_channel_and_sales_order(sender_phone: str):
 
 	if not so:
 		raise NoActiveSalesOrdersException(customer)
-		# TODO: This should be sent as a message to Twilio, same user, as a reply
-		# frappe.throw(_("Customer {0} has no active In Progress Sales Order.").format(customer.name))
 
 	channel_id = so.custom_raven_channel
 	if not channel_id:
-		# TODO: Log it properly. This error gets sent to Twilio
 		frappe.throw(_("Sales Order {0} has no Raven Channel.").format(so.name))
 
 	return channel_id, so.name, customer
 
 
-# Customer Bot
 def handle_incoming_message(form_data, customer) -> str | None:
-	if (btn_action := form_data.get("ButtonPayload")) is not None:
-		match btn_action:
-			case "btn_order_greet_show_more":
-				# TODO: Handle this better. For now I'm just getting the most recent SO.
-				# What we can actually do is get which message is the reply,
-				# find it in the outbound list, and use the referenced doc of that.
-				if (latest_so := get_customer_recent_so(customer)) is not None:
-					address_doc = (
-						get_cached_doc_or_none("Address", latest_so.customer_address)
-						if latest_so.customer_address is not None
-						else None
-					)
+	"""Handle supported WhatsApp button replies."""
 
-					work_type = " / ".join(item.item_name for item in latest_so.items if item.item_name)
+	if (btn_action := form_data.get("ButtonPayload")) is None:
+		return None
 
-					address = (
-						", ".join(
-							part
-							for part in (
-								address_doc.address_line1,
-								address_doc.city,
-								address_doc.state,
-								address_doc.country,
-							)
-							if part
-						)
-						if address_doc is not None
-						else ""
-					)
+	match btn_action:
+		case "btn_order_greet_show_more":
+			# Twilio supplies the SID of the outbound message being replied to.
+			original_message_sid = form_data.get("OriginalRepliedMessageSid")
 
-					return TICKET_DETAILS_MESSAGE.format(
-						service_type=work_type,
-						location=address,
+			sales_order = get_sales_order_by_twilio_sid(
+				original_message_sid,
+				customer,
+			)
+
+			if not sales_order:
+				return (
+					"Sorry! We couldn't identify the original ticket. "
+					"Please contact us if you need assistance."
+				)
+
+			address_doc = (
+				get_cached_doc_or_none("Address", sales_order.customer_address)
+				if sales_order.customer_address
+				else None
+			)
+
+			work_type = " / ".join(item.item_name for item in sales_order.items if item.item_name)
+
+			address = (
+				", ".join(
+					part
+					for part in (
+						address_doc.address_line1,
+						address_doc.city,
+						address_doc.state,
+						address_doc.country,
 					)
-				else:
-					# TODO: This should not happen
-					return "Sorry! You currently don't have any active Tickets. If this is a mistake, please contact us."
-			case "btn_order_technician_assigned_continue":
-				pass
-			case "btn_reach_out_continue":
-				pass
+					if part
+				)
+				if address_doc
+				else ""
+			)
+
+			return TICKET_DETAILS_MESSAGE.format(
+				service_type=work_type,
+				location=address,
+			)
+
+		case "btn_order_technician_assigned_continue":
+			return None
+
+		case "btn_reach_out_continue":
+			return None
+
+	return None
