@@ -192,6 +192,10 @@ doc_events = {
 
 fixtures = [
 	{
+		"dt": "Number Card",
+		"filters": [["name", "in", ["New Ticket", "Ongoing Ticket", "Completed"]]],
+	},
+	{
 		"dt": "Dashboard",
 		"filters": [["name", "in", ["Spectrum PS Dashboard", "Spectrum PS Dashboard SalesOrder"]]],
 	},
