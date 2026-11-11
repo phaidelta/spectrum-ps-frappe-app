@@ -14,7 +14,8 @@
         "priority",
         "attachments",
         "retry",
-        "reply_to""sales_order",
+        "reply_to",
+        "sales_order",
         "twilio_message_sid"
     ],
     "fields": [
@@ -183,4 +184,4 @@
     "sort_field": "creation",
     "sort_order": "DESC",
     "states": []
-} 
+}
