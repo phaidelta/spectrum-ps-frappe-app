@@ -158,6 +158,7 @@ after_migrate = "spectrum_ps.setup.after_migrate"
 doc_events = {
 	"Customer": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
+		"on_update": "spectrum_ps.spectrum_ps.doc_events.customer.notify_active_sales_order_changed",
 		# "on_update": "spectrum_ps.spectrum_ps.doc_events.customer.create_customer_bot",
 		"on_trash": "spectrum_ps.spectrum_ps.doc_events.customer.remove_customer_bot",
 	},

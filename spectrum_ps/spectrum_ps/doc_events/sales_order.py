@@ -12,7 +12,11 @@ from spectrum_ps.config import (
 	TEMPLATE_TECHNICIAN_ASSIGNMENT_ACCEPTED,
 )
 from spectrum_ps.config.action_users import SYSTEM_MANAGER_USER
-from spectrum_ps.config.logic_config import TECHNICIAN_INACTIVE_TICKET_STATES
+from spectrum_ps.config.logic_config import (
+	INACTIVE_TICKET_STATUSES,
+	KEEP_ACTIVE_TICKET_AS_ACTIVE_ON_NEW_TICKET,
+	TECHNICIAN_INACTIVE_TICKET_STATES,
+)
 from spectrum_ps.context_managers import as_user
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
@@ -253,7 +257,8 @@ def handle_sales_order_create(doc, method=None):
 		if (
 			active_order
 			and active_order.docstatus != 2
-			and active_order.custom_ticket_status not in {"Paid", "Cancelled"}
+			and active_order.custom_ticket_status not in INACTIVE_TICKET_STATUSES
+			and KEEP_ACTIVE_TICKET_AS_ACTIVE_ON_NEW_TICKET
 		):
 			frappe.log(f"Keeping active Sales Order `{active_sales_order}` for Customer `{customer.name}`")
 		else:
