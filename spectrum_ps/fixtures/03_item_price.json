@@ -6,7 +6,7 @@
     "item_name": "Electrician (Quote)",
     "uom": "Nos",
     "price_list": "Standard Selling",
-    "price_list_rate": 10.0,
+    "price_list_rate": 0.0,
     "currency": "USD",
     "supplier": ""
   },
@@ -17,7 +17,7 @@
     "item_name": "General (Quote)",
     "uom": "Nos",
     "price_list": "Standard Selling",
-    "price_list_rate": 100.0,
+    "price_list_rate": 0.0,
     "currency": "USD",
     "supplier": ""
   },
@@ -127,7 +127,7 @@
     "item_name": "Plumbing (Quote)",
     "uom": "Nos",
     "price_list": "Standard Selling",
-    "price_list_rate": 10.0,
+    "price_list_rate": 0.0,
     "currency": "USD",
     "supplier": ""
   }
