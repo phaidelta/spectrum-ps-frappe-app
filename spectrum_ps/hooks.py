@@ -167,7 +167,7 @@ doc_events = {
 	},
 	"Sales Order": {
 		"after_insert": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_create",
-		"on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_remove",
+		# "on_trash": "spectrum_ps.spectrum_ps.doc_events.sales_order.handle_sales_order_remove",
 		"on_update": "spectrum_ps.spectrum_ps.doc_events.sales_order.update_sales_order",
 		"before_validate": "spectrum_ps.spectrum_ps.doc_events.sales_order.before_validate",
 	},
