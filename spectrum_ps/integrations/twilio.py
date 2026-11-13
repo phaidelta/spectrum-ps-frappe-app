@@ -86,17 +86,26 @@ def validate_webhook_signature(url: str, form_data: dict) -> bool:
 	auth_token = require_setting("twilio_auth_token")
 	validator = RequestValidator(auth_token)
 
-	# Reconstruct public ngrok URL if running behind proxy
-	forwarded_proto = frappe.get_request_header("X-Forwarded-Proto") or "https"
-	forwarded_host = frappe.get_request_header("X-Forwarded-Host") or frappe.get_request_header("Host")
+	# Twilio signs the exact public URL it called, including the query string.
+	# Reconstruct it from the proxy headers Frappe sees behind ngrok/reverse proxies.
+	forwarded_proto = frappe.get_request_header("X-Forwarded-Proto") or (
+		frappe.request.scheme if frappe.request else "https"
+	)
+	forwarded_host = (
+		frappe.get_request_header("X-Forwarded-Host")
+		or frappe.get_request_header("Host")
+		or (frappe.request.host if frappe.request else None)
+	)
 
 	if forwarded_host:
 		request_path = (
-			frappe.request.path if frappe.request else "/api/method/spectrum_ps.api.whatsapp_webhook"
+			frappe.request.full_path.rstrip("?")
+			if frappe.request
+			else "/api/method/spectrum_ps.api.whatsapp_webhook"
 		)
 		url = f"{forwarded_proto}://{forwarded_host}{request_path}"
 
-	# Exclude internal Frappe query keys like 'cmd'
+	# Twilio signs only the POST body params, never Frappe's internal query keys.
 	params = {k: v for k, v in form_data.items() if k != "cmd"}
 	wrapped_params = FormDictWrapper(params)
 

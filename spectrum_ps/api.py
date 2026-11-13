@@ -341,12 +341,8 @@ def whatsapp_webhook(*args, **kwargs):
 	request_url = getattr(frappe.request, "url", "") if frappe.request else ""
 	form = frappe.form_dict or {}
 
-	# TODO: Signature checks are failing
-	frappe.log("Twilio sig check:")
-	frappe.log(str(request_url))
-	frappe.log(str(form))
-	# if request_url and not validate_webhook_signature(request_url, form):
-	# 	frappe.throw(_("Invalid Twilio signature"), frappe.PermissionError)
+	if not validate_webhook_signature(request_url, form):
+		frappe.throw(_("Invalid Twilio signature"), frappe.PermissionError)
 
 	sender = (form.get("From") or "").strip()
 	# profile_name = (form.get("ProfileName") or sender).strip()
