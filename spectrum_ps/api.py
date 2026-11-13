@@ -14,6 +14,7 @@ from frappe.utils.oauth import (
 	get_user_record,
 	update_oauth_user,
 )
+from twilio.twiml.messaging_response import MessagingResponse
 from werkzeug.wrappers import Response
 
 from spectrum_ps.customer_bot import get_raven_channel_and_sales_order, handle_incoming_message
@@ -356,10 +357,7 @@ def whatsapp_webhook(*args, **kwargs):
 		frappe.throw(_("Missing WhatsApp sender"))
 
 	if not body:
-		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response />',
-			content_type="application/xml",
-		)
+		return Response(str(MessagingResponse()), content_type="application/xml")
 
 	try:
 		inbound_msg_doc = frappe.new_doc("Customer Message Inbound Queue")
@@ -376,13 +374,9 @@ def whatsapp_webhook(*args, **kwargs):
 			# Directly handle the request
 			if (response := handle_incoming_message(form, customer)) is not None:
 				_add_sent_outbound_queue(recipient=customer.name, message=response)
-
-				# TODO: Properly escape the string to prevent issues
-				return Response(
-					'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
-					% response,
-					content_type="application/xml",
-				)
+				twiml = MessagingResponse()
+				twiml.message(response)
+				return Response(str(twiml), content_type="application/xml")
 
 			raven_text = body
 			frappe.flags.in_whatsapp_webhook = True
@@ -393,10 +387,8 @@ def whatsapp_webhook(*args, **kwargs):
 			finally:
 				frappe.flags.in_whatsapp_webhook = False
 
-			return Response(
-				'<?xml version="1.0" encoding="UTF-8"?><Response />',
-				content_type="application/xml",
-			)
+			return Response(str(MessagingResponse()), content_type="application/xml")
+
 		finally:
 			inbound_msg_doc.insert(ignore_permissions=True)
 
@@ -416,12 +408,9 @@ def whatsapp_webhook(*args, **kwargs):
 
 		# TODO: Handle this by sending notification to Admin
 
-		# TODO: Properly escape the string to prevent issues
-		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
-			% message_content,
-			content_type="application/xml",
-		)
+		twiml = MessagingResponse()
+		twiml.message(message_content)
+		return Response(str(twiml), content_type="application/xml")
 
 	except NoActiveSalesOrdersException as ex:
 		logger.info("Phone number `%s` messaged us with no active Sales Order" % sender)
@@ -434,9 +423,6 @@ def whatsapp_webhook(*args, **kwargs):
 			message=message_content,
 		)
 
-		# TODO: Properly escape the string to prevent issues
-		return Response(
-			'<?xml version="1.0" encoding="UTF-8"?><Response><Message>%s</Message></Response>'
-			% message_content,
-			content_type="application/xml",
-		)
+		twiml = MessagingResponse()
+		twiml.message(message_content)
+		return Response(str(twiml), content_type="application/xml")
