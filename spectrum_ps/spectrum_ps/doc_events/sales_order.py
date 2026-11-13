@@ -17,6 +17,7 @@ from spectrum_ps.context_managers import as_user
 from spectrum_ps.spectrum_ps.doc_events.customer import create_customer_bot
 from spectrum_ps.utils import enqueue_outbound_sales_order_whatsapp_template
 
+KEEP_ACTIVE_TICKET_AS_ACTIVE_ON_NEW_TICKET = False
 
 def _get_customer_name(doc):
 	return frappe.db.get_value("Customer", doc.customer, "customer_name") or doc.customer
@@ -254,6 +255,7 @@ def handle_sales_order_create(doc, method=None):
 			active_order
 			and active_order.docstatus != 2
 			and active_order.custom_ticket_status not in {"Paid", "Cancelled"}
+			and KEEP_ACTIVE_TICKET_AS_ACTIVE_ON_NEW_TICKET
 		):
 			frappe.log(f"Keeping active Sales Order `{active_sales_order}` for Customer `{customer.name}`")
 		else:
