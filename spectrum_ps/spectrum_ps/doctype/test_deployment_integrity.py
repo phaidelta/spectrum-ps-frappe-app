@@ -223,6 +223,39 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 			f"Technician permissions are not installed for: {', '.join(missing)}",
 		)
 
+	def test_standard_permissions_are_preserved_as_custom_permissions(self):
+		for doctype in ("Sales Order", "Customer", "Raven Channel", "Raven User", "Raven Workspace Member"):
+			standard_permissions = frappe.get_all(
+				"DocPerm",
+				filters={"parent": doctype},
+				fields=["role", "permlevel", "read", "write", "create"],
+			)
+			custom_permissions = frappe.get_all(
+				"Custom DocPerm",
+				filters={"parent": doctype},
+				fields=["role", "permlevel", "read", "write", "create"],
+			)
+			custom_by_key = {
+				(permission.role, permission.permlevel): permission for permission in custom_permissions
+			}
+
+			for standard_permission in standard_permissions:
+				key = (standard_permission.role, standard_permission.permlevel)
+				self.assertIn(
+					key,
+					custom_by_key,
+					f"{doctype} permission for {standard_permission.role} at level "
+					f"{standard_permission.permlevel} was not preserved",
+				)
+				if standard_permission.role in ("System Manager", "Sales Manager"):
+					custom_permission = custom_by_key[key]
+					for fieldname in ("read", "write", "create"):
+						self.assertEqual(
+							custom_permission[fieldname],
+							standard_permission[fieldname],
+							f"{doctype} {fieldname} permission changed for {standard_permission.role}",
+						)
+
 	def test_setup_created_raven_workspace_exists(self):
 		self.assertTrue(
 			frappe.db.exists(

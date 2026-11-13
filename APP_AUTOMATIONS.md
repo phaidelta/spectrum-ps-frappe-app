@@ -173,8 +173,11 @@ Both `after_install` and `after_migrate` call `spectrum_ps.setup.run_setup`.
 This setup is intended to be repeatable:
 
 - Ensure the app's `Technician` and `Spectrum PS User` roles exist.
-- Upsert Technician custom permissions on Sales Order, Raven Channel, Raven
-  User, Raven Workspace Member, and Customer.
+- Before adding Technician custom permissions on Sales Order, Raven Channel,
+  Raven User, Raven Workspace Member, and Customer, copy any standard role
+  permissions not already overridden into `Custom DocPerm`. Frappe uses
+  `Custom DocPerm` rows in place of standard `DocPerm` rows for a DocType once
+  custom permissions exist, so this preserves the existing role access.
 - Ensure the ERPNext `All Item Groups` root exists before fixtures import the
   app's `Services` Item Group and dependent Item records.
 - Create the public Raven Workspace `Customer communications` if the Raven
