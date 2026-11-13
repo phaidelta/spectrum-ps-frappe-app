@@ -334,6 +334,7 @@ def active_orders_count(customer_id: str | None):
 	)
 
 
+# nosemgrep: frappe-semgrep-rules.rules.security.guest-whitelisted-method -- Twilio webhook; authenticity enforced by validate_webhook_signature below
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def whatsapp_webhook(*args, **kwargs):
 	"""Receive Twilio WhatsApp messages and route them to the customer's Raven channel."""
