@@ -7,6 +7,14 @@ from frappe.tests import IntegrationTestCase
 from spectrum_ps import hooks, setup
 
 
+def read_fixture_records(fixtures_path, doctype):
+	for fixture_path in sorted(fixtures_path.glob("*.json")):
+		records = json.loads(fixture_path.read_text())
+		if any(record.get("doctype") == doctype for record in records):
+			return records
+	return []
+
+
 class TestDeploymentIntegrity(IntegrationTestCase):
 	def test_ground_truth_requirements_exist_in_source(self):
 		app_path = Path(frappe.get_app_path("spectrum_ps"))
@@ -38,8 +46,7 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 
 		missing_records = []
 		for doctype, names in ground_truth["fixture_records"].items():
-			fixture_path = fixtures_path / f"{doctype.lower().replace(' ', '_')}.json"
-			records = json.loads(fixture_path.read_text()) if fixture_path.exists() else []
+			records = read_fixture_records(fixtures_path, doctype)
 			source_names = {record["name"] for record in records}
 			missing_records.extend(f"{doctype}: {name}" for name in names if name not in source_names)
 		self.assertEqual(
@@ -152,8 +159,7 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 
 		for fixture in hooks.fixtures:
 			doctype = fixture["dt"]
-			fixture_file = fixtures_path / f"{doctype.lower().replace(' ', '_')}.json"
-			records = json.loads(fixture_file.read_text())
+			records = read_fixture_records(fixtures_path, doctype)
 			missing_records.extend(
 				f"{doctype}: {record['name']}"
 				for record in records
@@ -224,4 +230,10 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 				{"workspace_name": "Customer communications"},
 			),
 			"Setup did not create the Customer communications Raven Workspace",
+		)
+
+	def test_setup_created_item_group_root_exists(self):
+		self.assertTrue(
+			frappe.db.exists("Item Group", setup.ITEM_GROUP_ROOT_NAME),
+			f"Setup did not create the {setup.ITEM_GROUP_ROOT_NAME} Item Group root",
 		)

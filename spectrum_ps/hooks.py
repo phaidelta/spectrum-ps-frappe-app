@@ -192,6 +192,75 @@ doc_events = {
 
 fixtures = [
 	{
+		"dt": "Skill",
+		"filters": [
+			["name", "in", ["CCTV", "Home Inspector", "General", "Appliances", "Plumber", "Electrician"]]
+		],
+	},
+	{
+		"dt": "Item Group",
+		"filters": [["name", "in", ["Services"]]],
+	},
+	{
+		"dt": "Item",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"SRV-GENERAL-QUOTE",
+					"SRV-APPLIANCE-QUOTE",
+					"SRV-PLUMBING-QUOTE",
+					"SRV-ELECTRICIAN-QUOTE",
+					"SRV-INSPECTION-R3",
+					"SRV-INSPECTION-R2",
+					"SRV-INSPECTION-S3",
+					"SRV-INSPECTION-S2",
+					"SRV-INSPECTION-S1",
+					"SRV-INSPECTION-T3",
+					"SRV-INSPECTION-T2",
+					"SRV-INSPECTION-T1",
+					"SRV-INSPECTION-R1",
+				],
+			]
+		],
+	},
+	{
+		"dt": "Price List",
+		"filters": [["name", "in", ["Standard Selling"]]],
+	},
+	{
+		"dt": "Item Price",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"0175nvnipr",
+					"fvdjcpop2u",
+					"mfl5ps6hd7",
+					"agpmdo85gm",
+					"agrkqiq0ji",
+					"agkv5uf8mh",
+					"agm5v192qc",
+					"agou8c304u",
+					"agdo7av7vb",
+					"agg7jht2rn",
+					"agipm9ap8h",
+					"4b7u94bqbd",
+				],
+			]
+		],
+	},
+	{
+		"dt": "Number Card",
+		"filters": [["name", "in", ["New Ticket", "Ongoing Ticket", "Completed"]]],
+	},
+	{
+		"dt": "Dashboard",
+		"filters": [["name", "in", ["Spectrum PS Dashboard", "Spectrum PS Dashboard SalesOrder"]]],
+	},
+	{
 		"dt": "Custom Field",
 		"filters": [
 			[

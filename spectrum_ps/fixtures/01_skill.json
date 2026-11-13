@@ -1,0 +1,44 @@
+[
+  {
+    "doctype": "Skill",
+    "name": "CCTV",
+    "skill_name": "CCTV",
+    "description": "CCTV Skills",
+    "active": 1
+  },
+  {
+    "doctype": "Skill",
+    "name": "Home Inspector",
+    "skill_name": "Home Inspector",
+    "description": "Home Inspector",
+    "active": 1
+  },
+  {
+    "doctype": "Skill",
+    "name": "General",
+    "skill_name": "General",
+    "description": "General Technician",
+    "active": 1
+  },
+  {
+    "doctype": "Skill",
+    "name": "Appliances",
+    "skill_name": "Appliances",
+    "description": "",
+    "active": 1
+  },
+  {
+    "doctype": "Skill",
+    "name": "Plumber",
+    "skill_name": "Plumber",
+    "description": "Plumbing work",
+    "active": 1
+  },
+  {
+    "doctype": "Skill",
+    "name": "Electrician",
+    "skill_name": "Electrician",
+    "description": "Electrical work",
+    "active": 1
+  }
+]

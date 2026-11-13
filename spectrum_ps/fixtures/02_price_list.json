@@ -1,0 +1,13 @@
+[
+  {
+    "doctype": "Price List",
+    "name": "Standard Selling",
+    "enabled": 1,
+    "price_list_name": "Standard Selling",
+    "currency": "USD",
+    "buying": 0,
+    "selling": 1,
+    "price_not_uom_dependent": 0,
+    "countries": []
+  }
+]

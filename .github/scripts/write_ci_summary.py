@@ -86,6 +86,14 @@ def deployment_count(values, total):
 	return f"{count} / {total}", f"{percentage:.1f}%"
 
 
+def fixture_records(fixtures_dir, doctype):
+	for path in sorted(fixtures_dir.glob("*.json")):
+		records = read_json(path, [])
+		if any(record.get("doctype") == doctype for record in records):
+			return records
+	return []
+
+
 def render_deployment_counts(root, installed):
 	ground_truth = read_json(root / "spectrum_ps" / "deployment_ground_truth.json", {})
 
@@ -115,8 +123,9 @@ def render_deployment_counts(root, installed):
 	fixture_source = {}
 	record_presence = []
 	for doctype, names in ground_truth.get("fixture_records", {}).items():
-		path = fixtures_dir / f"{doctype.lower().replace(' ', '_')}.json"
-		fixture_source[doctype] = {record.get("name") for record in read_json(path, []) if record.get("name")}
+		fixture_source[doctype] = {
+			record.get("name") for record in fixture_records(fixtures_dir, doctype) if record.get("name")
+		}
 		for name in names:
 			record_presence.append(
 				(
@@ -257,8 +266,9 @@ def render_record_table(root, installed):
 	fixtures_dir = root / "spectrum_ps" / "fixtures"
 	fixture_source = {}
 	for doctype in ground_truth.get("fixture_records", {}):
-		path = fixtures_dir / f"{doctype.lower().replace(' ', '_')}.json"
-		fixture_source[doctype] = {record.get("name") for record in read_json(path, []) if record.get("name")}
+		fixture_source[doctype] = {
+			record.get("name") for record in fixture_records(fixtures_dir, doctype) if record.get("name")
+		}
 
 	source_setup = (root / "spectrum_ps" / "setup.py").read_text(errors="replace")
 	setup_records = ground_truth.get("setup_records", {})

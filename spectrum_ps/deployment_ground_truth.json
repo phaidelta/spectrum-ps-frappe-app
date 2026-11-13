@@ -62,6 +62,46 @@
     ]
   },
   "fixture_records": {
+    "Item Price": [
+      "0175nvnipr",
+      "fvdjcpop2u",
+      "mfl5ps6hd7",
+      "agpmdo85gm",
+      "agrkqiq0ji",
+      "agkv5uf8mh",
+      "agm5v192qc",
+      "agou8c304u",
+      "agdo7av7vb",
+      "agg7jht2rn",
+      "agipm9ap8h",
+      "4b7u94bqbd"
+    ],
+    "Price List": ["Standard Selling"],
+    "Item Group": ["Services"],
+    "Item": [
+      "SRV-APPLIANCE-QUOTE",
+      "SRV-ELECTRICIAN-QUOTE",
+      "SRV-GENERAL-QUOTE",
+      "SRV-INSPECTION-R1",
+      "SRV-INSPECTION-R2",
+      "SRV-INSPECTION-R3",
+      "SRV-INSPECTION-S1",
+      "SRV-INSPECTION-S2",
+      "SRV-INSPECTION-S3",
+      "SRV-INSPECTION-T1",
+      "SRV-INSPECTION-T2",
+      "SRV-INSPECTION-T3",
+      "SRV-PLUMBING-QUOTE"
+    ],
+    "Dashboard": [
+      "Spectrum PS Dashboard",
+      "Spectrum PS Dashboard SalesOrder"
+    ],
+    "Number Card": [
+      "Completed",
+      "New Ticket",
+      "Ongoing Ticket"
+    ],
     "Notification": [
       "Admin Notification - Ticket Created",
       "Admin Notification - Work in Progress",
@@ -71,6 +111,14 @@
       "Sales Order Aging",
       "Sales Order Completed",
       "Sales Order Created"
+    ],
+    "Skill": [
+      "Appliances",
+      "CCTV",
+      "Electrician",
+      "General",
+      "Home Inspector",
+      "Plumber"
     ],
     "Role": [
       "Spectrum PS User",
@@ -152,6 +200,11 @@
     }
   },
   "setup_records": {
+    "Item Group": {
+      "constant": "ITEM_GROUP_ROOT_NAME",
+      "field": "name",
+      "value": "All Item Groups"
+    },
     "Raven Workspace": {
       "constant": "RAVEN_WORKSPACE_NAME",
       "field": "workspace_name",

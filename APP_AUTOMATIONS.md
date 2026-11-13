@@ -175,6 +175,8 @@ This setup is intended to be repeatable:
 - Ensure the app's `Technician` and `Spectrum PS User` roles exist.
 - Upsert Technician custom permissions on Sales Order, Raven Channel, Raven
   User, Raven Workspace Member, and Customer.
+- Ensure the ERPNext `All Item Groups` root exists before fixtures import the
+  app's `Services` Item Group and dependent Item records.
 - Create the public Raven Workspace `Customer communications` if the Raven
   DocType is installed and the workspace does not already exist. If Raven is
   not installed yet, workspace creation is skipped for a later migration.
@@ -193,3 +195,8 @@ the Sales Order naming series automatically.
   what counts as an inactive or assignable ticket.
 - Deployment fixtures and the editable expected-deployment list are maintained
   in `spectrum_ps/fixtures/` and `spectrum_ps/deployment_ground_truth.json`.
+- Frappe imports fixture files in alphabetical filename order. Number
+  dependency-sensitive fixtures so linked records load first (for example,
+  Item Group, Skill, Item, Price List, then Item Price). Deployment integrity
+  checks and CI summaries locate records by their `doctype` values, not assumed
+  filenames.

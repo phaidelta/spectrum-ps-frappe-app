@@ -1,0 +1,134 @@
+[
+  {
+    "doctype": "Item Price",
+    "name": "0175nvnipr",
+    "item_code": "SRV-ELECTRICIAN-QUOTE",
+    "item_name": "Electrician (Quote)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 10.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "fvdjcpop2u",
+    "item_code": "SRV-GENERAL-QUOTE",
+    "item_name": "General (Quote)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 100.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "mfl5ps6hd7",
+    "item_code": "SRV-INSPECTION-R1",
+    "item_name": "Inspection: R1 (New Home - 11 Month Inspection)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 500.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "agpmdo85gm",
+    "item_code": "SRV-INSPECTION-R2",
+    "item_name": "Inspection: R2 (Radon Measurement)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 225.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "agrkqiq0ji",
+    "item_code": "SRV-INSPECTION-R3",
+    "item_name": "Inspection: R3 (Review - General)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 225.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "agkv5uf8mh",
+    "item_code": "SRV-INSPECTION-S1",
+    "item_name": "Inspection: S1 (SingleFamily - New PreDryWall)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 225.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "agm5v192qc",
+    "item_code": "SRV-INSPECTION-S2",
+    "item_name": "Inspection: S2 (SingleFamily - New Final)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 375.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "agou8c304u",
+    "item_code": "SRV-INSPECTION-S3",
+    "item_name": "Inspection: S3 (SingleFamily - Resale)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 375.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "agdo7av7vb",
+    "item_code": "SRV-INSPECTION-T1",
+    "item_name": "Inspection: T1 (New Home - PreDryWall)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 225.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "agg7jht2rn",
+    "item_code": "SRV-INSPECTION-T2",
+    "item_name": "Inspection: T2(New Home - Final Inspection)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 350.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "agipm9ap8h",
+    "item_code": "SRV-INSPECTION-T3",
+    "item_name": "Inspection: T3 (Resale Home Inspection)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 350.0,
+    "currency": "USD",
+    "supplier": ""
+  },
+  {
+    "doctype": "Item Price",
+    "name": "4b7u94bqbd",
+    "item_code": "SRV-PLUMBING-QUOTE",
+    "item_name": "Plumbing (Quote)",
+    "uom": "Nos",
+    "price_list": "Standard Selling",
+    "price_list_rate": 10.0,
+    "currency": "USD",
+    "supplier": ""
+  }
+]
