@@ -270,3 +270,13 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 			frappe.db.exists("Item Group", setup.ITEM_GROUP_ROOT_NAME),
 			f"Setup did not create the {setup.ITEM_GROUP_ROOT_NAME} Item Group root",
 		)
+
+	def test_sales_order_naming_series_is_added_and_defaulted(self):
+		setup.setup_sales_order_naming()
+		setup.setup_sales_order_naming()
+
+		naming_series = frappe.get_meta("Sales Order").get_field("naming_series")
+		options = naming_series.options.splitlines()
+		self.assertEqual(naming_series.default, setup.SALES_ORDER_SERIES)
+		self.assertEqual(options[0], setup.SALES_ORDER_SERIES)
+		self.assertEqual(options.count(setup.SALES_ORDER_SERIES), 1)

@@ -20,6 +20,7 @@ def run_setup():
 	setup_roles_and_permissions()
 	setup_raven_workspace()
 	setup_item_group_root()
+	setup_sales_order_naming()
 
 
 def setup_raven_workspace():
@@ -59,7 +60,15 @@ def setup_item_group_root():
 
 
 def setup_sales_order_naming():
-	"""Make Sales Order use our naming series by default."""
-	for prop in ("options", "default"):
-		make_property_setter("Sales Order", "naming_series", prop, SALES_ORDER_SERIES, "Text")
+	"""Add our Sales Order series and make it the default."""
+	if not frappe.db.exists("DocType", "Sales Order"):
+		return
+
+	naming_series = frappe.get_meta("Sales Order").get_field("naming_series")
+	options = [option.strip() for option in (naming_series.options or "").splitlines() if option.strip()]
+	options = [option for option in options if option != SALES_ORDER_SERIES]
+	options.insert(0, SALES_ORDER_SERIES)
+
+	make_property_setter("Sales Order", "naming_series", "options", "\n".join(options), "Text")
+	make_property_setter("Sales Order", "naming_series", "default", SALES_ORDER_SERIES, "Text")
 	frappe.clear_cache(doctype="Sales Order")

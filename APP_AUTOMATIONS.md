@@ -180,13 +180,11 @@ This setup is intended to be repeatable:
   custom permissions exist, so this preserves the existing role access.
 - Ensure the ERPNext `All Item Groups` root exists before fixtures import the
   app's `Services` Item Group and dependent Item records.
+- Add `TKT-.YYYY.MM.-.###` to the Sales Order naming-series options and make it
+  the default, retaining other configured series as alternatives.
 - Create the public Raven Workspace `Customer communications` if the Raven
   DocType is installed and the workspace does not already exist. If Raven is
   not installed yet, workspace creation is skipped for a later migration.
-
-The `setup_sales_order_naming` helper exists in `spectrum_ps/setup.py` but is
-not called by `run_setup` or registered as a hook; it does not currently change
-the Sales Order naming series automatically.
 
 ## Related Behavior Outside Document Hooks
 
