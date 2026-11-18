@@ -31,6 +31,8 @@
   ],
   "custom_fields": {
     "Address": [
+      "custom_spectrum_ps",
+      "custom_spectrum_ps_section",
       "custom_buildyear",
       "custom_has_basement",
       "custom_lot_number",
@@ -41,12 +43,18 @@
       "custom_disabled",
       "custom_rating",
       "custom_raven_bot",
-      "rating"
+      "rating",
+      "custom_spectrum_ps",
+      "custom_spectrum_ps_section"
     ],
     "Item": [
+      "custom_spectrum_ps",
+      "custom_spectrum_ps_section",
       "skill_required"
     ],
     "Sales Invoice": [
+      "custom_spectrum_ps",
+      "custom_spectrum_ps_section",
       "custom_sales_order"
     ],
     "Sales Order": [
@@ -55,9 +63,13 @@
       "custom_priority",
       "custom_raven_channel",
       "custom_ticket_status",
-      "custom_ticket_type"
+      "custom_ticket_type",
+      "custom_spectrum_ps",
+      "custom_spectrum_ps_section"
     ],
     "Sales Order Item": [
+      "custom_spectrum_ps",
+      "custom_spectrum_ps_section",
       "custom_assigned_technician"
     ]
   },
