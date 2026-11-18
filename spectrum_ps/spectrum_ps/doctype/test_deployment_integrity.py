@@ -273,7 +273,6 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 
 	def test_sales_order_naming_series_is_added_and_defaulted(self):
 		setup.setup_sales_order_naming()
-		setup.setup_sales_order_naming()
 
 		naming_series = frappe.get_meta("Sales Order").get_field("naming_series")
 		options = naming_series.options.splitlines()
