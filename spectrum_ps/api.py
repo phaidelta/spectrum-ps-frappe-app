@@ -30,6 +30,17 @@ if TYPE_CHECKING:
 logger = get_logger()
 
 
+def _json(value):
+	"""Frappe passes nested JSON as dicts or as strings depending on the content type."""
+	return frappe.parse_json(value) if isinstance(value, str) else value
+
+
+def _require(data, *keys, label):
+	missing = [k for k in keys if not data.get(k)]
+	if missing:
+		frappe.throw(f"{label}: missing required fields(s): {', '.join(missing)}")
+
+
 def _add_sent_outbound_queue(recipient=None, message: str | None = None):
 	doc = frappe.get_doc(
 		{
@@ -332,6 +343,70 @@ def active_orders_count(customer_id: str | None):
 			"custom_ticket_status": ["not in", INACTIVE_TICKET_STATUSES],
 		},
 	)
+
+
+def _get_or_create_realtor(realtor):
+	# TODO need to create logic to handle create realtor instance
+	raise NotImplementedError
+
+
+@frappe.whitelist(methods=["POST"])
+def create_sales_order(
+	customer=None,
+	customer_details=None,
+	customer_address=None,
+	custom_address=None,
+	realtor=None,
+	order=None,
+	transaction_date=None,
+	delivery_date=None,
+):
+	customer_details = _json(customer_details)
+	custom_address = _json(custom_address)
+	realtor = _json(realtor)
+	order = frappe._dict(_json(order) or {})
+
+	_require(order, "order_type", "items", label="order")
+
+	if not customer:
+		if not customer_details:
+			frappe.throw("Either customer or customer_details is required")
+		customer = frappe.get_doc({**customer_details, "doctype": "Customer"}).insert().name
+
+	if (customer_address or "").lower() == "custom":
+		if not custom_address:
+			frappe.throw("custom_address is required when customer_address is 'custom'")
+		address = frappe.get_doc(
+			{
+				**custom_address,
+				"doctype": "Address",
+				"links": [{"link_doctype": "Customer", "link_name": customer}],
+			}
+		).insert()
+		customer_address = address.name
+
+	realtors = []
+
+	if realtor:
+		realtors.append(_get_or_create_realtor(realtor))
+
+	so = frappe.get_doc(
+		{
+			"doctype": "Sales Order",
+			"custom_priority": "Low",
+			"custom_ticket_status": "New",
+			"order_type": order["order_type"],
+			"custom_notes": order.get("notes"),
+			"customer": customer,
+			"customer_address": customer_address,
+			"transaction_date": transaction_date,
+			"delivery_date": delivery_date,
+			"items": order["items"],
+			"custom_other_linked_customers": realtors,
+		}
+	).insert()
+
+	return so.as_dict()
 
 
 # nosemgrep: frappe-semgrep-rules.rules.security.guest-whitelisted-method -- Twilio webhook; authenticity enforced by validate_webhook_signature below
