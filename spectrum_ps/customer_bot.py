@@ -74,6 +74,6 @@ def handle_incoming_message(form_data, customer) -> str | None:
 					# TODO: This should not happen
 					return "Sorry! You currently don't have any active Tickets. If this is a mistake, please contact us."
 			case "btn_order_technician_assigned_continue":
-				pass
+				return ""
 			case "btn_reach_out_continue":
-				pass
+				return ""

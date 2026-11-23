@@ -372,7 +372,8 @@ def whatsapp_webhook(*args, **kwargs):
 			if (response := handle_incoming_message(form, customer)) is not None:
 				_add_sent_outbound_queue(recipient=customer.name, message=response)
 				twiml = MessagingResponse()
-				twiml.message(response)
+				if len(response) > 0:
+					twiml.message(response)
 				return Response(str(twiml), content_type="application/xml")
 
 			raven_text = body
