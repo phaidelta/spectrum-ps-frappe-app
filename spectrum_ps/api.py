@@ -1,4 +1,5 @@
 import json
+import re
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
@@ -6,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.exceptions import ValidationError
 from frappe.rate_limiter import rate_limit
-from frappe.utils import get_url, validate_email_address
+from frappe.utils import add_days, get_url, nowdate, validate_email_address
 from frappe.utils.oauth import (
 	SignupDisabledError,
 	get_email,
@@ -39,6 +40,42 @@ def _require(data, *keys, label):
 	missing = [k for k in keys if not data.get(k)]
 	if missing:
 		frappe.throw(f"{label}: missing required fields(s): {', '.join(missing)}")
+
+
+def _normalize_phone(phone_number):
+	if not isinstance(phone_number, str):
+		raise ValueError("Invalid phone number")
+
+	raw = phone_number.strip()
+	if not raw:
+		raise ValueError("Invalid phone number: value cannot be empty")
+
+	if raw.startswith("+"):
+		parts = re.match(r"^\+(\d{1,4})[\s-]+(.+)$", raw)
+		if parts:
+			code, rest = parts.groups()
+			digits = re.sub(r"\D", "", rest)
+		else:
+			all_digits = re.sub(r"\D", "", raw[1:])
+			if not (7 <= len(all_digits) <= 15):
+				raise ValueError(f"Invalid phone number length: '{phone_number}")
+			if len(all_digits) > 10:
+				code = all_digits[:-10]
+				digits = all_digits[-10:]
+			else:
+				code = "1"
+				digits = all_digits
+	else:
+		code = "1"
+		digits = re.sub(r"\D", "", raw)
+
+	if not digits:
+		raise ValueError(f"Invalid phone number: no digits found in '{phone_number}'")
+
+	if not code or not (7 <= len(digits) <= 15):
+		raise ValueError(f"Invalid phone number: '{phone_number}'")
+
+	return f"+{code}{digits}"
 
 
 def _add_sent_outbound_queue(recipient=None, message: str | None = None):
@@ -347,7 +384,35 @@ def active_orders_count(customer_id: str | None):
 
 def _get_or_create_realtor(realtor):
 	# TODO need to create logic to handle create realtor instance
-	raise NotImplementedError
+	# raise NotImplementedError
+	frappe.throw("Realtor creation is not implemented yet.")
+
+
+def _find_customer_by_phone(phone):
+	rows = frappe.db.sql(
+		"""
+			SELECT cu.name, cu.disabled
+			FROM `tabContact Phone` cp
+			JOIN `tabDynamic Link` dl
+				ON dl.parent = cp.parent
+				AND dl.parenttype = 'Contact'
+				AND dl.link_doctype = 'Customer'
+			JOIN `tabCustomer` cu
+				ON cu.name = dl.link_name
+			WHERE RIGHT(
+				REGEXP_REPLACE(cp.phone, '[^0-9]', ''),
+				%(n)s
+			) = %(phone)s
+			ORDER BY cu.creation ASC
+			LIMIT 1
+		""",
+		{
+			"phone": phone,
+			"n": len(phone),
+		},
+		as_dict=True,
+	)
+	return rows[0] if rows else None
 
 
 @frappe.whitelist(methods=["POST"])
@@ -361,8 +426,8 @@ def create_sales_order(
 	transaction_date=None,
 	delivery_date=None,
 ):
-	customer_details = _json(customer_details)
-	custom_address = _json(custom_address)
+	customer_details = _json(customer_details) or {}
+	custom_address = _json(custom_address) or {}
 	realtor = _json(realtor)
 	order = frappe._dict(_json(order) or {})
 
@@ -371,7 +436,41 @@ def create_sales_order(
 	if not customer:
 		if not customer_details:
 			frappe.throw("Either customer or customer_details is required")
-		customer = frappe.get_doc({**customer_details, "doctype": "Customer"}).insert().name
+
+		phone = _normalize_phone(customer_details.get("phone"))
+		if not phone:
+			frappe.throw("customer_details.phone is required to create a customer")
+
+		existing_customer = _find_customer_by_phone(phone)
+		if existing_customer:
+			frappe.throw(f"Customer {existing_customer.name} already exists with this phone number.")
+
+		customer_data = dict(customer_details)
+		customer_data.pop("phone", None)
+
+		customer_doc = frappe.get_doc({**customer_data, "doctype": "Customer"}).insert()
+		customer = customer_doc.name
+
+		frappe.get_doc(
+			{
+				"doctype": "Contact",
+				"first_name": (
+					customer_details.get("customer_name") or customer_details.get("first_name") or customer
+				),
+				"email_id": customer_details.get("email_id"),
+				"phone_nos": [
+					{
+						"phone": phone,
+						"is_primary_phone": 1,
+					}
+				],
+				"links": [{"link_doctype": "Customer", "link_name": customer}],
+			}
+		).insert()
+
+	else:
+		if not frappe.db.exists("Customer", customer):
+			frappe.throw(f"Customer {customer} does not exist.")
 
 	if (customer_address or "").lower() == "custom":
 		if not custom_address:
@@ -389,6 +488,9 @@ def create_sales_order(
 
 	if realtor:
 		realtors.append(_get_or_create_realtor(realtor))
+
+	transaction_date = transaction_date or nowdate()
+	delivery_date = delivery_date or add_days(transaction_date, 7)
 
 	so = frappe.get_doc(
 		{
