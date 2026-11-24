@@ -1,10 +1,13 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
 
 from spectrum_ps import hooks, setup
+from spectrum_ps.spectrum_ps.doc_events.todo import remove_assigned_user
 
 
 def read_fixture_records(fixtures_path, doctype):
@@ -270,6 +273,25 @@ class TestDeploymentIntegrity(IntegrationTestCase):
 			frappe.db.exists("Item Group", setup.ITEM_GROUP_ROOT_NAME),
 			f"Setup did not create the {setup.ITEM_GROUP_ROOT_NAME} Item Group root",
 		)
+
+	def test_remove_assigned_user_keeps_system_managers(self):
+		doc = SimpleNamespace(
+			reference_type="Sales Order",
+			allocated_to="manager@example.com",
+			reference_name="SAL-ORD-0001",
+			name="TODO-0001",
+		)
+
+		with (
+			patch(
+				"spectrum_ps.spectrum_ps.doc_events.todo.frappe.db.exists",
+				return_value=True,
+			),
+			patch("spectrum_ps.spectrum_ps.doc_events.todo.frappe.call") as raven_call,
+		):
+			remove_assigned_user(doc)
+
+		raven_call.assert_not_called()
 
 	def test_sales_order_naming_series_is_added_and_defaulted(self):
 		setup.setup_sales_order_naming()
