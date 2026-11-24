@@ -89,6 +89,18 @@ def remove_assigned_user(doc, method=None):
 		return
 
 	assigned_to = doc.allocated_to
+
+	if frappe.db.exists(
+		"Has Role",
+		{
+			"parent": assigned_to,
+			"role": "System Manager",
+			"parenttype": "User",
+		},
+	):
+		frappe.log(f"Keeping System Manager `{assigned_to}` in Sales Order Raven Channel")
+		return
+
 	frappe.log(f"Removing ToDo assignee `{assigned_to}` from Sales Order Raven Channel")
 
 	if not frappe.db.exists("Raven User", assigned_to):

@@ -114,12 +114,13 @@ Registered on `on_update` by
 
 `ToDo.before_save` calls
 `remove_assigned_user_on_cancel`. If a ToDo's status is `Cancelled`, remove its
-assignee from the linked Sales Order Raven Channel.
+assignee from the linked Sales Order Raven Channel. Users with the
+`System Manager` role are kept in the channel.
 
 `ToDo.on_trash` calls `remove_assigned_user_on_trash`. If the ToDo is not
 already `Cancelled`, remove its assignee from the linked channel before
 deletion. Removal is skipped if the assignee is not a Raven User or the Sales
-Order has no channel.
+Order has no channel, and System Manager users are retained.
 
 ## Raven Messages and WhatsApp
 
