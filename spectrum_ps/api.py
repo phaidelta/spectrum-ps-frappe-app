@@ -41,15 +41,16 @@ def _validate_website_url(url: str) -> str:
 		or parsed.password
 		or parsed.fragment
 	):
-		frappe.throw("Invalid website URL configured: '{url}'")
+		frappe.throw(f"Invalid website URL configured: '{url}'")
 
 	return cleaned
 
 
 def _get_website_url(redirect_source: str = "website-redirect") -> str:
+	target_source = redirect_source.strip().lstrip("/")
 	website_settings = frappe.get_single("Website Settings")
 	for row in website_settings.get("route_redirects") or []:
-		if (row.source or "").strip() == redirect_source and row.target:
+		if (row.source or "").strip().lstrip("/") == redirect_source and row.target:
 			return _validate_website_url(str(row.target))
 
 	configured = frappe.conf.get("frontend_website_url")
