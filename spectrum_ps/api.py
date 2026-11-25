@@ -389,30 +389,11 @@ def _get_or_create_realtor(realtor):
 
 
 def _find_customer_by_phone(phone):
-	rows = frappe.db.sql(
-		"""
-			SELECT cu.name, cu.disabled
-			FROM `tabContact Phone` cp
-			JOIN `tabDynamic Link` dl
-				ON dl.parent = cp.parent
-				AND dl.parenttype = 'Contact'
-				AND dl.link_doctype = 'Customer'
-			JOIN `tabCustomer` cu
-				ON cu.name = dl.link_name
-			WHERE RIGHT(
-				REGEXP_REPLACE(cp.phone, '[^0-9]', ''),
-				%(n)s
-			) = %(phone)s
-			ORDER BY cu.creation ASC
-			LIMIT 1
-		""",
-		{
-			"phone": phone,
-			"n": len(phone),
-		},
-		as_dict=True,
+	return frappe.db.get_value(
+		"Customer",
+		{"mobile_no": phone},
+		"name",
 	)
-	return rows[0] if rows else None
 
 
 @frappe.whitelist(methods=["POST"])
@@ -443,10 +424,11 @@ def create_sales_order(
 
 		existing_customer = _find_customer_by_phone(phone)
 		if existing_customer:
-			frappe.throw(f"Customer {existing_customer.name} already exists with this phone number.")
+			frappe.throw(f"Customer {existing_customer} already exists with this phone number: '{phone}'.")
 
 		customer_data = dict(customer_details)
 		customer_data.pop("phone", None)
+		customer_data["mobile_no"] = phone
 
 		customer_doc = frappe.get_doc({**customer_data, "doctype": "Customer"}).insert()
 		customer = customer_doc.name
@@ -458,12 +440,7 @@ def create_sales_order(
 					customer_details.get("customer_name") or customer_details.get("first_name") or customer
 				),
 				"email_id": customer_details.get("email_id"),
-				"phone_nos": [
-					{
-						"phone": phone,
-						"is_primary_phone": 1,
-					}
-				],
+				"mobile_no": phone,
 				"links": [{"link_doctype": "Customer", "link_name": customer}],
 			}
 		).insert()
