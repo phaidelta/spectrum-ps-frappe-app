@@ -1,6 +1,6 @@
 import json
 from typing import TYPE_CHECKING
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urljoin
 
 import frappe
 from frappe import _
@@ -28,6 +28,42 @@ if TYPE_CHECKING:
 	from frappe.core.doctype.user.user import User
 
 logger = get_logger()
+
+
+def _validate_website_url(url: str) -> str:
+	cleaned = url.strip().rstrip("/")
+	parsed = urlsplit(cleaned)
+
+	if (
+		parsed.scheme not in {"http", "https"}
+		or not parsed.netloc
+		or parsed.username
+		or parsed.password
+		or parsed.fragment
+	):
+		frappe.throw("Invalid website URL configured: '{url}'")
+
+	return cleaned
+
+
+def _get_website_url(redirect_source: str = "website-redirect") -> str:
+	website_settings = frappe.get_single("Website Settings")
+	for row in website_settings.get("route_redirects") or []:
+		if (row.source or "").strip() == redirect_source and row.target:
+			return _validate_website_url(str(row.target))
+
+	configured = frappe.conf.get("frontend_website_url")
+	if isinstance(configured, str) and configured.strip():
+		return _validate_website_url(configured)
+
+	return _validate_website_url("https://spectrum-ps.uat.phaidelta.com")
+
+
+def _build_website_url(path: str = "", redirect_source: str = "website-redirect") -> str:
+	base = _get_website_url(redirect_source=redirect_source)
+	if not path:
+		return base
+	return urljoin(f"{base}/", path.lstrip("/"))
 
 
 def _add_sent_outbound_queue(recipient=None, message: str | None = None):
@@ -397,7 +433,10 @@ def whatsapp_webhook(*args, **kwargs):
 		)
 
 		# TODO: Use Redirect URL instead of hardcoding
-		message_content = "Hi! Welcome to Spectrum PS.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
+		website_url = _build_website_url()
+		message_content = (
+			f"Hi! Welcome to Spectrum PS.\nYou can visit our website at {website_url} and create an order."
+		)
 
 		_add_sent_outbound_queue(
 			recipient=None,
@@ -414,7 +453,8 @@ def whatsapp_webhook(*args, **kwargs):
 		logger.info("Phone number `%s` messaged us with no active Sales Order" % sender)
 
 		# TODO: Use Redirect URL instead of hardcoding
-		message_content = "Hi! You don't seem to have any active orders.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
+		website_url = _build_website_url()
+		message_content = f"Hi! You don't seem to have any active orders.\nYou can visit our website at {website_url} and create an order."
 
 		_add_sent_outbound_queue(
 			recipient=ex.customer.name,
