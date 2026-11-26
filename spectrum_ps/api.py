@@ -29,7 +29,8 @@ if TYPE_CHECKING:
 
 logger = get_logger()
 
-def _clean_source(value)-> str:
+
+def _clean_source(value) -> str:
 	"""Redirect source compare without surrounding spaces or slashes, ignore case."""
 	return (value or "").strip().strip("/").lower()
 
@@ -38,7 +39,7 @@ def _validate_website_url(url: str) -> str:
 	cleaned = (url or "").strip().rstrip("/")
 	try:
 		parsed = urlsplit(cleaned)
-		_ = parsed.port #raises ValueError for invalid port
+		_ = parsed.port  # raises ValueError for invalid port
 	except ValueError:
 		frappe.throw(_("Invalid website URL configured: '{0}'").format(url))
 
@@ -54,7 +55,7 @@ def _validate_website_url(url: str) -> str:
 	return cleaned
 
 
-def _get_website_url(redirect_source:str = "website-redirect") -> str | None:
+def _get_website_url(redirect_source: str = "website-redirect") -> str | None:
 	expected_source = _clean_source(redirect_source)
 	website_settings = frappe.get_cached_doc("Website Settings")
 	for row in website_settings.get("route_redirects") or []:
@@ -63,7 +64,8 @@ def _get_website_url(redirect_source:str = "website-redirect") -> str | None:
 			return _validate_website_url(target)
 
 	frappe.logger().warning(
-		"Website URL is not configured: no '%s' row with a target under Website Settings > Redirects", expected_source
+		"Website URL is not configured: no '%s' row with a target under Website Settings > Redirects",
+		expected_source,
 	)
 	return None
 
@@ -476,7 +478,9 @@ def whatsapp_webhook(*args, **kwargs):
 		if website_url:
 			message_content = f"Hi! You don't seem to have any active orders.\nYou can visit our website at {website_url} and create an order."
 		else:
-			message_content = "Hi You don't seem to have any active orders.\nPlease visit our website and create an order."
+			message_content = (
+				"Hi You don't seem to have any active orders.\nPlease visit our website and create an order."
+			)
 
 		_add_sent_outbound_queue(
 			recipient=ex.customer.name,
