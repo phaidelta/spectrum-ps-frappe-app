@@ -385,7 +385,7 @@ def active_orders_count(customer_id: str | None):
 def _get_or_create_realtor(realtor):
 	# TODO need to create logic to handle create realtor instance
 	# raise NotImplementedError
-	frappe.throw("Realtor creation is not implemented yet.")
+	frappe.throw(_("Realtor creation is not implemented yet."))
 
 
 def _find_customer_by_phone(phone):
@@ -398,14 +398,14 @@ def _find_customer_by_phone(phone):
 
 @frappe.whitelist(methods=["POST"])
 def create_sales_order(
-	customer=None,
-	customer_details=None,
-	customer_address=None,
-	custom_address=None,
-	realtor=None,
-	order=None,
-	transaction_date=None,
-	delivery_date=None,
+	customer : str | None = None,
+	customer_details: dict | None =None,
+	customer_address: str | None =None,
+	custom_address: dict | None =None,
+	realtor: str | None =None,
+	order: dict | None =None,
+	transaction_date: str | None =None,
+	delivery_date: str | None =None,
 ):
 	customer_details = _json(customer_details) or {}
 	custom_address = _json(custom_address) or {}
@@ -416,11 +416,11 @@ def create_sales_order(
 
 	if not customer:
 		if not customer_details:
-			frappe.throw("Either customer or customer_details is required")
+			frappe.throw(_("Either customer or customer_details is required"))
 
 		phone = _normalize_phone(customer_details.get("phone"))
 		if not phone:
-			frappe.throw("customer_details.phone is required to create a customer")
+			frappe.throw(_("customer_details.phone is required to create a customer"))
 
 		existing_customer = _find_customer_by_phone(phone)
 		if existing_customer:
@@ -451,7 +451,7 @@ def create_sales_order(
 
 	if (customer_address or "").lower() == "custom":
 		if not custom_address:
-			frappe.throw("custom_address is required when customer_address is 'custom'")
+			frappe.throw(_("custom_address is required when customer_address is 'custom'"))
 		address = frappe.get_doc(
 			{
 				**custom_address,
