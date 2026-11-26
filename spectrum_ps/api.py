@@ -1,6 +1,6 @@
 import json
 from typing import TYPE_CHECKING
-from urllib.parse import urlsplit, urljoin
+from urllib.parse import urljoin, urlsplit
 
 import frappe
 from frappe import _
@@ -71,7 +71,6 @@ def _get_website_url(redirect_source: str = "website-redirect") -> str | None:
 
 
 def _build_website_url(path: str = "") -> str | None:
-
 	if path:
 		parts = urlsplit(path)
 		if parts.scheme or parts.netloc or ".." in parts.path.split("/"):
