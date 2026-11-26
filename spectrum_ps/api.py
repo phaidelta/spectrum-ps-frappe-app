@@ -398,14 +398,14 @@ def _find_customer_by_phone(phone):
 
 @frappe.whitelist(methods=["POST"])
 def create_sales_order(
-	customer : str | None = None,
-	customer_details: dict | None =None,
-	customer_address: str | None =None,
-	custom_address: dict | None =None,
-	realtor: str | None =None,
-	order: dict | None =None,
-	transaction_date: str | None =None,
-	delivery_date: str | None =None,
+	customer: str | None = None,
+	customer_details: dict | None = None,
+	customer_address: str | None = None,
+	custom_address: dict | None = None,
+	realtor: str | None = None,
+	order: dict | None = None,
+	transaction_date: str | None = None,
+	delivery_date: str | None = None,
 ):
 	customer_details = _json(customer_details) or {}
 	custom_address = _json(custom_address) or {}
