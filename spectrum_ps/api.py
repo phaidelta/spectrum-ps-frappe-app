@@ -29,10 +29,18 @@ if TYPE_CHECKING:
 
 logger = get_logger()
 
+def _clean_source(value)-> str:
+	"""Redirect source compare without surrounding spaces or slashes, ignore case."""
+	return (value or "").strip().strip("/").lower()
+
 
 def _validate_website_url(url: str) -> str:
-	cleaned = url.strip().rstrip("/")
-	parsed = urlsplit(cleaned)
+	cleaned = (url or "").strip().rstrip("/")
+	try:
+		parsed = urlsplit(cleaned)
+		_ = parsed.port #raises ValueError for invalid port
+	except ValueError:
+		frappe.throw(_("Invalid website URL configured: '{0}'").format(url))
 
 	if (
 		parsed.scheme not in {"http", "https"}
@@ -41,27 +49,35 @@ def _validate_website_url(url: str) -> str:
 		or parsed.password
 		or parsed.fragment
 	):
-		frappe.throw(f"Invalid website URL configured: '{url}'")
+		frappe.throw(_("Invalid website URL configured: '{0}'").format(url))
 
 	return cleaned
 
 
-def _get_website_url(redirect_source: str = "website-redirect") -> str:
-	target_source = redirect_source.strip().lstrip("/")
-	website_settings = frappe.get_single("Website Settings")
+def _get_website_url(redirect_source:str = "website-redirect") -> str | None:
+	expected_source = _clean_source(redirect_source)
+	website_settings = frappe.get_cached_doc("Website Settings")
 	for row in website_settings.get("route_redirects") or []:
-		if (row.source or "").strip().lstrip("/") == redirect_source and row.target:
-			return _validate_website_url(str(row.target))
+		target = str(row.target or "").strip()
+		if _clean_source(row.source) == expected_source and target:
+			return _validate_website_url(target)
 
-	configured = frappe.conf.get("frontend_website_url")
-	if isinstance(configured, str) and configured.strip():
-		return _validate_website_url(configured)
+	frappe.logger().warning(
+		"Website URL is not configured: no '%s' row with a target under Website Settings > Redirects", expected_source
+	)
+	return None
 
-	return _validate_website_url("https://spectrum-ps.uat.phaidelta.com")
 
+def _build_website_url(path: str = "") -> str | None:
 
-def _build_website_url(path: str = "", redirect_source: str = "website-redirect") -> str:
-	base = _get_website_url(redirect_source=redirect_source)
+	if path:
+		parts = urlsplit(path)
+		if parts.scheme or parts.netloc or ".." in parts.path.split("/"):
+			frappe.throw(_("Invalid path for website URL: '{0}'").format(path))
+
+	base = _get_website_url()
+	if not base:
+		return None
 	if not path:
 		return base
 	return urljoin(f"{base}/", path.lstrip("/"))
@@ -434,10 +450,12 @@ def whatsapp_webhook(*args, **kwargs):
 		)
 
 		# TODO: Use Redirect URL instead of hardcoding
-		website_url = _build_website_url()
-		message_content = (
-			f"Hi! Welcome to Spectrum PS.\nYou can visit our website at {website_url} and create an order."
-		)
+		website_url = _get_website_url()
+
+		if website_url:
+			message_content = f"Hi! Welcome to Spectrum PS.\nYou can visit our website at {website_url} and create an order."
+		else:
+			message_content = "Hi! Welcome to Spectrum PS.\nYou can visit our website to create an order."
 
 		_add_sent_outbound_queue(
 			recipient=None,
@@ -454,8 +472,11 @@ def whatsapp_webhook(*args, **kwargs):
 		logger.info("Phone number `%s` messaged us with no active Sales Order" % sender)
 
 		# TODO: Use Redirect URL instead of hardcoding
-		website_url = _build_website_url()
-		message_content = f"Hi! You don't seem to have any active orders.\nYou can visit our website at {website_url} and create an order."
+		website_url = _get_website_url()
+		if website_url:
+			message_content = f"Hi! You don't seem to have any active orders.\nYou can visit our website at {website_url} and create an order."
+		else:
+			message_content = "Hi You don't seem to have any active orders.\nPlease visit our website and create an order."
 
 		_add_sent_outbound_queue(
 			recipient=ex.customer.name,
