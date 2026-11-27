@@ -1,6 +1,6 @@
 import json
 from typing import TYPE_CHECKING
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import frappe
 from frappe import _
@@ -28,6 +28,60 @@ if TYPE_CHECKING:
 	from frappe.core.doctype.user.user import User
 
 logger = get_logger()
+
+
+def _clean_source(value) -> str:
+	"""Redirect source compare without surrounding spaces or slashes, ignore case."""
+	return (value or "").strip().strip("/").lower()
+
+
+def _validate_website_url(url: str) -> str:
+	cleaned = (url or "").strip().rstrip("/")
+	try:
+		parsed = urlsplit(cleaned)
+		_ = parsed.port  # raises ValueError for invalid port
+	except ValueError:
+		frappe.throw(_("Invalid website URL configured: '{0}'").format(url))
+
+	if (
+		parsed.scheme not in {"http", "https"}
+		or not parsed.netloc
+		or parsed.username
+		or parsed.password
+		or parsed.fragment
+	):
+		frappe.throw(_("Invalid website URL configured: '{0}'").format(url))
+
+	return cleaned
+
+
+def _get_website_url(redirect_source: str = "website-redirect") -> str | None:
+	expected_source = _clean_source(redirect_source)
+	website_settings = frappe.get_cached_doc("Website Settings")
+	for row in website_settings.get("route_redirects") or []:
+		target = str(row.target or "").strip()
+		if _clean_source(row.source) == expected_source and target:
+			return _validate_website_url(target)
+
+	frappe.logger().warning(
+		"Website URL is not configured: no '%s' row with a target under Website Settings > Redirects",
+		expected_source,
+	)
+	return None
+
+
+def _build_website_url(path: str = "") -> str | None:
+	if path:
+		parts = urlsplit(path)
+		if parts.scheme or parts.netloc or ".." in parts.path.split("/"):
+			frappe.throw(_("Invalid path for website URL: '{0}'").format(path))
+
+	base = _get_website_url()
+	if not base:
+		return None
+	if not path:
+		return base
+	return urljoin(f"{base}/", path.lstrip("/"))
 
 
 def _add_sent_outbound_queue(recipient=None, message: str | None = None):
@@ -397,7 +451,12 @@ def whatsapp_webhook(*args, **kwargs):
 		)
 
 		# TODO: Use Redirect URL instead of hardcoding
-		message_content = "Hi! Welcome to Spectrum PS.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
+		website_url = _get_website_url()
+
+		if website_url:
+			message_content = f"Hi! Welcome to Spectrum PS.\nYou can visit our website at {website_url} and create an order."
+		else:
+			message_content = "Hi! Welcome to Spectrum PS.\nYou can visit our website to create an order."
 
 		_add_sent_outbound_queue(
 			recipient=None,
@@ -414,7 +473,13 @@ def whatsapp_webhook(*args, **kwargs):
 		logger.info("Phone number `%s` messaged us with no active Sales Order" % sender)
 
 		# TODO: Use Redirect URL instead of hardcoding
-		message_content = "Hi! You don't seem to have any active orders.\nYou can visit our website at https://spectrum-ps.uat.phaidelta.com and create an order."
+		website_url = _get_website_url()
+		if website_url:
+			message_content = f"Hi! You don't seem to have any active orders.\nYou can visit our website at {website_url} and create an order."
+		else:
+			message_content = (
+				"Hi You don't seem to have any active orders.\nPlease visit our website and create an order."
+			)
 
 		_add_sent_outbound_queue(
 			recipient=ex.customer.name,
